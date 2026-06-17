@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dice Bingo Solver — David J. Hemmer and Benjamin W. Ong</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #222;
+    background: #fff;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  h1 { font-size: 1.6rem; font-weight: normal; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.15rem; font-weight: normal; margin: 2rem 0 0.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; }
+  p  { margin-bottom: 0.75rem; color: #333; }
+  a  { color: #00274C; }
+
+  .site-header { border-bottom: 2px solid #00274C; padding-bottom: 0.75rem; margin-bottom: 1.75rem; }
+  .site-header p { font-size: 0.9rem; color: #555; margin: 0; }
+
+  /* Tab nav */
+  .tab-nav { display: flex; gap: 0; border-bottom: 1px solid #bbb; margin-bottom: 1.5rem; }
+  .tab-btn {
+    background: none; border: none; border-bottom: 3px solid transparent;
+    padding: 0.5rem 1.25rem; font-family: Georgia, serif; font-size: 0.95rem;
+    color: #555; cursor: pointer; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: #00274C; }
+  .tab-btn.active { color: #00274C; border-bottom-color: #00274C; font-weight: bold; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Board grids */
+  .board-wrap { display: flex; justify-content: center; margin: 1rem 0; }
+  .board-grid {
+    display: grid; grid-template-columns: repeat(3, 72px);
+    gap: 6px;
+  }
+  .board-grid.small { grid-template-columns: repeat(3, 56px); }
+
+  .cell {
+    width: 72px; height: 72px; position: relative;
+    border: 1px solid #aaa; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; transition: background 0.15s, border-color 0.15s;
+  }
+  .board-grid.small .cell { width: 56px; height: 56px; }
+  .board-grid.grid4 .cell { width: 64px; height: 64px; }
+  .board-grid.grid4s .cell { width: 52px; height: 52px; }
+  .board-grid.grid4 .cell input, .board-grid.grid4s .cell span { font-size: 1rem; }
+  .cell input {
+    width: 100%; height: 100%; text-align: center;
+    font-size: 1.2rem; font-family: Georgia, serif;
+    border: none; background: transparent; color: #222; outline: none;
+  }
+  .board-grid.small .cell span { font-size: 1.1rem; font-family: Georgia, serif; font-weight: bold; }
+  .cell .cell-idx {
+    position: absolute; top: 3px; left: 5px;
+    font-size: 0.6rem; color: #aaa; font-family: sans-serif;
+  }
+  .cell.invalid { border-color: #c0392b; background: #fdf0ee; }
+  .cell.marked  { background: #e8f0f8; border-color: #7aace0; }
+  .cell.marked span { color: #003d8f; }
+  .cell.winning { background: #eaf5e8; border-color: #5aaa52; }
+  .cell.winning span { color: #1a6b15; }
+  .cell.suggested { border: 2px solid #00274C; background: #e8f0f8; }
+  .cell.suggested span { color: #00274C; }
+  .cell.dimmed { opacity: 0.4; }
+
+  /* Buttons */
+  .btn {
+    font-family: Georgia, serif; font-size: 0.9rem;
+    padding: 0.45rem 1.1rem; border: 1px solid #aaa;
+    background: #f9f9f9; color: #222; border-radius: 3px;
+    cursor: pointer; transition: background 0.12s;
+  }
+  .btn:hover { background: #eee; }
+  .btn:active { background: #ddd; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #00274C; color: #fff; border-color: #00274C; }
+  .btn-primary:hover { background: #003a70; }
+  .btn-primary:disabled { background: #7a9bb5; border-color: #7a9bb5; }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 0.75rem; }
+
+  /* Error */
+  .error { font-size: 0.85rem; color: #c0392b; text-align: center; min-height: 1.2rem; margin-top: 0.4rem; }
+
+  /* Hint & stats */
+  .hint-box {
+    background: #f5f8fb; border: 1px solid #c5d8ec; border-radius: 4px;
+    padding: 0.6rem 0.9rem; font-size: 0.9rem; color: #333; margin-bottom: 0.75rem; min-height: 2.5rem;
+  }
+  .hint-box b { color: #00274C; }
+
+  .stats-box {
+    background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;
+    padding: 0.6rem 0.9rem; font-size: 0.875rem; margin-bottom: 0.75rem;
+  }
+  .stats-box table { width: 100%; border-collapse: collapse; }
+  .stats-box td { padding: 2px 0; }
+  .stats-box td:last-child { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; color: #00274C; }
+
+  /* Roll input row */
+  .roll-row { display: flex; gap: 8px; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  .roll-input {
+    width: 70px; height: 38px; text-align: center;
+    font-size: 1.1rem; font-family: Georgia, serif;
+    border: 1px solid #aaa; border-radius: 3px; background: #fff; color: #222;
+  }
+
+  /* Log */
+  .log-scroll { max-height: 160px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem 0.75rem; background: #fafafa; }
+  .log-entry { font-size: 0.85rem; color: #444; padding: 3px 0; border-bottom: 1px solid #eee; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry b { color: #00274C; }
+
+  /* Play layout */
+  .play-layout { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+  .play-board-col { flex: 0 0 auto; }
+  .play-controls-col { flex: 1; min-width: 220px; }
+
+  /* Section label */
+  .section-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.35rem; font-family: sans-serif; }
+
+  /* H2H results */
+  .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 1rem 0; }
+  .result-card { text-align: center; background: #f5f8fb; border: 1px solid #c5d8ec; border-radius: 4px; padding: 0.75rem 0.5rem; }
+  .result-card .rc-label { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
+  .result-card .rc-val { font-size: 1.4rem; font-weight: bold; color: #00274C; font-family: 'Courier New', monospace; }
+  .result-card .rc-frac { font-size: 0.75rem; color: #888; margin-top: 2px; font-family: 'Courier New', monospace; }
+
+  .h2h-boards { display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; margin: 1rem 0; }
+  .h2h-board-block { text-align: center; }
+  .h2h-board-block .board-label { font-size: 0.85rem; color: #555; margin-bottom: 0.5rem; }
+
+  .win-banner { text-align: center; padding: 1.5rem; background: #eaf5e8; border: 1px solid #5aaa52; border-radius: 4px; margin-top: 1rem; }
+  .win-banner h2 { border: none; margin: 0 0 0.5rem; font-size: 1.3rem; color: #1a6b15; }
+  .win-banner p { color: #2a7a24; margin: 0; }
+
+  .phase-title { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.07em; font-family: sans-serif; margin-bottom: 0.5rem; }
+
+  footer { margin-top: 3rem; border-top: 1px solid #ccc; padding-top: 1rem; font-size: 0.85rem; color: #777; }
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <h1>Dice Bingo Solver</h1>
+  <p>David J. Hemmer and Benjamin W. Ong — Department of Mathematical Sciences, Michigan Technological University</p>
+</div>
+
+<p>
+  Each player fills a board with dice sums (2–12). On each turn a pair of dice is rolled;
+  players mark a matching cell on their board. The first to complete a row, column, or main diagonal wins.
+  This tool computes <em>optimal play</em> via exact backward induction.
+</p>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="solo">Solo 3×3</button>
+  <button class="tab-btn" data-tab="solo4">Solo 4×4</button>
+  <button class="tab-btn" data-tab="h2h">Head-to-head 3×3</button>
+</nav>
+
+<!-- ======================================================= SOLO TAB -->
+<div id="tab-solo" class="tab-panel active">
+
+  <div id="solo-setup">
+    <div class="phase-title">Enter your board (values 2–12)</div>
+    <div class="board-wrap"><div class="board-grid" id="solo-setup-grid"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c8"></div></div></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="solo-solve-btn">Solve &amp; start playing</button>
+      <button class="btn" id="solo-clear-btn">Clear</button>
+    </div>
+    <div class="error" id="solo-error"></div>
+  </div>
+
+  <div id="solo-play" style="display:none; margin-top:1rem;">
+    <div class="play-layout">
+      <div class="play-board-col">
+        <div class="phase-title">Board</div>
+        <div class="board-grid small" id="solo-play-grid"></div>
+      </div>
+      <div class="play-controls-col">
+        <div class="section-label">Statistics</div>
+        <div class="stats-box" id="solo-stats"></div>
+
+        <div class="section-label">Enter roll</div>
+        <div class="roll-row">
+          <input type="number" min="2" max="12" class="roll-input" id="solo-roll-input" placeholder="2–12">
+          <button class="btn btn-primary" id="solo-apply-btn">Apply</button>
+          <button class="btn" id="solo-undo-btn">Undo</button>
+        </div>
+
+        <div class="section-label">Optimal move</div>
+        <div class="hint-box" id="solo-hint">Enter a roll to see the optimal move.</div>
+
+        <div class="section-label">Move log</div>
+        <div class="log-scroll" id="solo-log"></div>
+
+        <div class="btn-row" style="margin-top:0.75rem; justify-content:flex-start;">
+          <button class="btn" id="solo-replay-btn">Replay same board</button>
+          <button class="btn" id="solo-newboard-btn">New board</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="solo-win" style="display:none; margin-top:1rem;">
+    <div class="win-banner">
+      <h2>Bingo!</h2>
+      <p id="solo-win-msg"></p>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+      <button class="btn btn-primary" id="solo-win-replay-btn">Play again</button>
+      <button class="btn" id="solo-win-newboard-btn">New board</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ======================================================= SOLO 4x4 TAB -->
+<div id="tab-solo4" class="tab-panel">
+
+  <p style="font-size:0.9rem;">Win condition: complete any row, column, or one of the two main diagonals (all 4 cells). Solving 65,536 states — may take a few seconds.</p>
+
+  <div id="s4-setup">
+    <div class="phase-title">Enter your 4×4 board (values 2–12)</div>
+    <div class="board-wrap"><div class="board-grid" id="s4-setup-grid" style="grid-template-columns:repeat(4,64px);gap:5px;"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c8"></div><div class="cell"><span class="cell-idx">9</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c9"></div><div class="cell"><span class="cell-idx">10</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c10"></div><div class="cell"><span class="cell-idx">11</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c11"></div><div class="cell"><span class="cell-idx">12</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c12"></div><div class="cell"><span class="cell-idx">13</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c13"></div><div class="cell"><span class="cell-idx">14</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c14"></div><div class="cell"><span class="cell-idx">15</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c15"></div></div></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s4-solve-btn">Solve &amp; start playing</button>
+      <button class="btn" id="s4-clear-btn">Clear</button>
+    </div>
+    <div class="error" id="s4-error"></div>
+  </div>
+
+  <div id="s4-play" style="display:none; margin-top:1rem;">
+    <div class="play-layout">
+      <div class="play-board-col">
+        <div class="phase-title">Board</div>
+        <div class="board-grid" id="s4-play-grid" style="grid-template-columns:repeat(4,52px);gap:5px;"></div>
+      </div>
+      <div class="play-controls-col">
+        <div class="section-label">Statistics</div>
+        <div class="stats-box" id="s4-stats"></div>
+
+        <div class="section-label">Enter roll</div>
+        <div class="roll-row">
+          <input type="number" min="2" max="12" class="roll-input" id="s4-roll-input" placeholder="2–12">
+          <button class="btn btn-primary" id="s4-apply-btn">Apply</button>
+          <button class="btn" id="s4-undo-btn">Undo</button>
+        </div>
+
+        <div class="section-label">Optimal move</div>
+        <div class="hint-box" id="s4-hint">Enter a roll to see the optimal move.</div>
+
+        <div class="section-label">Move log</div>
+        <div class="log-scroll" id="s4-log"></div>
+
+        <div class="btn-row" style="margin-top:0.75rem; justify-content:flex-start;">
+          <button class="btn" id="s4-replay-btn">Replay same board</button>
+          <button class="btn" id="s4-newboard-btn">New board</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s4-win" style="display:none; margin-top:1rem;">
+    <div class="win-banner">
+      <h2>Bingo!</h2>
+      <p id="s4-win-msg"></p>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+      <button class="btn btn-primary" id="s4-win-replay-btn">Play again</button>
+      <button class="btn" id="s4-win-newboard-btn">New board</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ======================================================= H2H TAB -->
+<div id="tab-h2h" class="tab-panel">
+
+  <p style="font-size:0.9rem;">Enter two boards. The solver computes exact win/loss/tie probabilities assuming each player follows their own solo-optimal strategy independently.</p>
+
+  <div id="h2h-setup">
+    <div class="h2h-boards">
+      <div class="h2h-board-block">
+        <div class="board-label">Board 1</div>
+        <div class="board-grid" id="h2h-grid1"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c8"></div></div>
+      </div>
+      <div class="h2h-board-block">
+        <div class="board-label">Board 2</div>
+        <div class="board-grid" id="h2h-grid2"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c8"></div></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="h2h-solve-btn">Compute probabilities</button>
+      <button class="btn" id="h2h-clear-btn">Clear both</button>
+    </div>
+    <div class="error" id="h2h-error"></div>
+  </div>
+
+  <div id="h2h-results" style="display:none; margin-top:1.5rem;">
+    <div class="section-label">Solo expected rolls</div>
+    <div class="stats-box" id="h2h-solo-stats"></div>
+    <div class="section-label">Head-to-head probabilities</div>
+    <div class="results-grid" id="h2h-result-cards"></div>
+    <div class="btn-row" style="margin-top:0.5rem; justify-content:flex-start;">
+      <button class="btn" id="h2h-reset-btn">New comparison</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Computations use exact rational arithmetic via BigInt fractions. No external libraries required.</p>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+// ── Exact rational arithmetic ─────────────────────────────────────────────
+function gcd(a,b){a=a<0n?-a:a;b=b<0n?-b:b;while(b){const t=b;b=a%b;a=t;}return a;}
+function frac(n,d){n=BigInt(n);d=BigInt(d??1);if(d<0n){n=-n;d=-d;}const g=gcd(n<0n?-n:n,d);return{n:n/g,d:d/g};}
+function fadd(a,b){return frac(a.n*b.d+b.n*a.d,a.d*b.d);}
+function fsub(a,b){return frac(a.n*b.d-b.n*a.d,a.d*b.d);}
+function fmul(a,b){return frac(a.n*b.n,a.d*b.d);}
+function fdiv(a,b){return frac(a.n*b.d,a.d*b.n);}
+function flt(a,b){return a.n*b.d<b.n*a.d;}
+function feq(a,b){return a.n===b.n&&a.d===b.d;}
+function ffloat(a){return Number(a.n)/Number(a.d);}
+function F(n,d){return frac(BigInt(n),d!=null?BigInt(d):1n);}
+const ZERO=F(0),ONE=F(1);
+
+// ── Dice distribution ──────────────────────────────────────────────────────
+const DVALS=[2,3,4,5,6,7,8,9,10,11,12];
+const DP={2:F(1,36),3:F(2,36),4:F(3,36),5:F(4,36),6:F(5,36),7:F(6,36),
+           8:F(5,36),9:F(4,36),10:F(3,36),11:F(2,36),12:F(1,36)};
+
+// ── Win detection ──────────────────────────────────────────────────────────
+const WLINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const WMASKS=WLINES.map(l=>l.reduce((m,i)=>m|(1<<i),0));
+const WIN_SET=new Set();
+for(let m=0;m<512;m++) if(WMASKS.some(L=>(m&L)===L)) WIN_SET.add(m);
+function isWin(m){return WIN_SET.has(m);}
+function bc(n){let c=0;while(n){c+=n&1;n>>=1;}return c;}
+function mark(m,i){return m|(1<<i);}
+
+function getWinLine(m){
+  for(const L of WLINES) if(L.every(i=>m&(1<<i))) return new Set(L);
+  return new Set();
+}
+
+// ── Stage 1: single-board solver ───────────────────────────────────────────
+function solveSingle(board){
+  const V={}, strat={};
+  for(let m=0;m<512;m++) if(isWin(m)) V[m]=ZERO;
+  for(let k=8;k>=0;k--){
+    for(let m=0;m<512;m++){
+      if(bc(m)!==k||isWin(m)) continue;
+      const unmarked=[...Array(9).keys()].filter(i=>!(m&(1<<i)));
+      const hittable=new Set(unmarked.map(i=>board[i]));
+      let pH=ZERO, fs=ZERO;
+      for(const v of DVALS){
+        if(!hittable.has(v)) continue;
+        pH=fadd(pH,DP[v]);
+        const cands=unmarked.filter(i=>board[i]===v);
+        let best=null,bc2=-1;
+        for(const c of cands){const vv=V[mark(m,c)];if(best===null||flt(vv,best)){best=vv;bc2=c;}}
+        strat[m+'_'+v]=bc2;
+        fs=fadd(fs,fmul(DP[v],best));
+      }
+      V[m]=fdiv(fadd(ONE,fs),pH);
+    }
+  }
+  return{V,strat};
+}
+
+function nextMask(board,strat,mask,v){
+  const key=mask+'_'+v;
+  if(!(key in strat)) return mask;
+  return mark(mask,strat[key]);
+}
+
+// ── Stage 2: joint head-to-head ────────────────────────────────────────────
+function solveH2H(board1,V1,strat1,board2,V2,strat2){
+  const W1={},W2={},D={};
+  for(let total=18;total>=0;total--){
+    for(let m1=0;m1<512;m1++){
+      const pc1=bc(m1);
+      if(pc1>total) continue;
+      const pc2=total-pc1;
+      if(pc2>9) continue;
+      for(let m2=0;m2<512;m2++){
+        if(bc(m2)!==pc2) continue;
+        if(isWin(m1)||isWin(m2)) continue;
+        const key=m1*512+m2;
+        let imw1=ZERO,imw2=ZERO,imd=ZERO,fw1=ZERO,fw2=ZERO,fd=ZERO,pStay=ZERO;
+        for(const s of DVALS){
+          const n1=nextMask(board1,strat1,m1,s);
+          const n2=nextMask(board2,strat2,m2,s);
+          const w1n=isWin(n1),w2n=isWin(n2);
+          if(w1n&&w2n) imd=fadd(imd,DP[s]);
+          else if(w1n)  imw1=fadd(imw1,DP[s]);
+          else if(w2n)  imw2=fadd(imw2,DP[s]);
+          else if(n1===m1&&n2===m2) pStay=fadd(pStay,DP[s]);
+          else{
+            const nk=n1*512+n2;
+            fw1=fadd(fw1,fmul(DP[s],W1[nk]));
+            fw2=fadd(fw2,fmul(DP[s],W2[nk]));
+            fd =fadd(fd, fmul(DP[s],D[nk]));
+          }
+        }
+        const denom=fsub(ONE,pStay);
+        if(feq(denom,ZERO)){W1[key]=ZERO;W2[key]=ZERO;D[key]=ZERO;}
+        else{
+          W1[key]=fdiv(fadd(imw1,fw1),denom);
+          W2[key]=fdiv(fadd(imw2,fw2),denom);
+          D[key] =fdiv(fadd(imd, fd ),denom);
+        }
+      }
+    }
+  }
+  return{W1,W2,D};
+}
+
+// ── Fraction to string ─────────────────────────────────────────────────────
+function fracStr(f){return f.n+'/'+f.d;}
+function pct(f){return (ffloat(f)*100).toFixed(2)+'%';}
+
+// ── Board input helpers ────────────────────────────────────────────────────
+function makeSetupGrid(containerId){
+  const g=document.getElementById(containerId);
+  g.innerHTML='';
+  for(let i=0;i<9;i++){
+    const div=document.createElement('div');
+    div.className='cell';
+    div.innerHTML=`<span class="cell-idx">${i}</span><input type="number" min="2" max="12" value="7" id="${containerId}-c${i}">`;
+    g.appendChild(div);
+  }
+}
+
+function readBoard(containerId){
+  const vals=[],bad=[];
+  for(let i=0;i<9;i++){
+    const inp=document.getElementById(containerId+'-c'+i);
+    const cell=inp.closest('.cell');
+    cell.classList.remove('invalid');
+    const v=parseInt(inp.value);
+    if(isNaN(v)||v<2||v>12){bad.push(i);cell.classList.add('invalid');}
+    vals.push(v);
+  }
+  return{vals,bad};
+}
+
+function clearBoard(containerId){
+  for(let i=0;i<9;i++) document.getElementById(containerId+'-c'+i).value=7;
+  document.querySelectorAll(`#${containerId} .cell`).forEach(c=>c.classList.remove('invalid'));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SOLO PLAY
+// ═══════════════════════════════════════════════════════════════════════════
+let sBoard,sV,sStrat,sState,sHistory;
+
+makeSetupGrid('solo-setup-grid');
+
+document.getElementById('solo-clear-btn').onclick=()=>{
+  clearBoard('solo-setup-grid');
+  document.getElementById('solo-error').textContent='';
+};
+
+document.getElementById('solo-solve-btn').onclick=function(){
+  const {vals,bad}=readBoard('solo-setup-grid');
+  if(bad.length){document.getElementById('solo-error').textContent='All cells must be 2–12.';return;}
+  document.getElementById('solo-error').textContent='';
+  this.disabled=true; this.textContent='Solving…';
+  setTimeout(()=>{
+    sBoard=vals;
+    const res=solveSingle(sBoard); sV=res.V; sStrat=res.strat;
+    this.disabled=false; this.textContent='Solve & start playing';
+    showSoloPlay();
+  },10);
+};
+
+function showSoloPlay(){
+  document.getElementById('solo-setup').style.display='none';
+  document.getElementById('solo-play').style.display='block';
+  document.getElementById('solo-win').style.display='none';
+  sState={mask:0,rolls:0}; sHistory=[];
+  buildPlayGrid('solo-play-grid',sBoard);
+  document.getElementById('solo-log').innerHTML='';
+  document.getElementById('solo-roll-input').value='';
+  updateSoloUI();
+}
+
+function buildPlayGrid(gid,board){
+  const g=document.getElementById(gid);
+  g.innerHTML='';
+  for(let i=0;i<9;i++){
+    const div=document.createElement('div');
+    div.className='cell'; div.id=gid+'-cell'+i;
+    div.innerHTML=`<span class="cell-idx">${i}</span><span>${board[i]}</span>`;
+    g.appendChild(div);
+  }
+}
+
+function updateSoloUI(suggestedCell){
+  const mask=sState.mask;
+  const winCells=isWin(mask)?getWinLine(mask):new Set();
+  for(let i=0;i<9;i++){
+    const el=document.getElementById('solo-play-grid-cell'+i);
+    el.className='cell';
+    if(winCells.size&&winCells.has(i)) el.className='cell winning';
+    else if(mask&(1<<i)) el.className='cell marked';
+    else if(suggestedCell===i) el.className='cell suggested';
+  }
+  const rem=ffloat(sV[mask]);
+  document.getElementById('solo-stats').innerHTML=`<table>
+    <tr><td>Cells marked</td><td>${bc(mask)} / 9</td></tr>
+    <tr><td>Expected rolls remaining</td><td>${rem.toFixed(3)}</td></tr>
+    <tr><td>Rolls used so far</td><td>${sState.rolls}</td></tr>
+  </table>`;
+}
+
+function soloHint(v){
+  const hint=document.getElementById('solo-hint');
+  if(v===null||isNaN(v)||v<2||v>12){hint.innerHTML='Enter a roll to see the optimal move.';updateSoloUI();return;}
+  const mask=sState.mask;
+  const key=mask+'_'+v;
+  const unmarked=[...Array(9).keys()].filter(i=>!(mask&(1<<i)));
+  const hits=unmarked.filter(i=>sBoard[i]===v);
+  if(!hits.length){hint.innerHTML=`Roll <b>${v}</b> — no matching cell. This roll is wasted.`;updateSoloUI();return;}
+  const cell=sStrat[key];
+  hint.innerHTML=`Roll <b>${v}</b> — mark cell <b>${cell}</b> (value&nbsp;${sBoard[cell]}).`;
+  updateSoloUI(cell);
+}
+
+document.getElementById('solo-roll-input').addEventListener('input',function(){soloHint(parseInt(this.value));});
+
+document.getElementById('solo-apply-btn').onclick=function(){
+  const v=parseInt(document.getElementById('solo-roll-input').value);
+  if(isNaN(v)||v<2||v>12) return;
+  const mask=sState.mask;
+  const key=mask+'_'+v;
+  const unmarked=[...Array(9).keys()].filter(i=>!(mask&(1<<i)));
+  const hits=unmarked.filter(i=>sBoard[i]===v);
+  sHistory.push({mask,rolls:sState.rolls});
+  sState.rolls++;
+  if(!hits.length){
+    addSoloLog(v,null,true);
+    document.getElementById('solo-roll-input').value='';
+    document.getElementById('solo-hint').innerHTML='Enter a roll to see the optimal move.';
+    updateSoloUI();
+    return;
+  }
+  const cell=sStrat[key];
+  const newMask=mark(mask,cell);
+  sState.mask=newMask;
+  addSoloLog(v,cell,false);
+  document.getElementById('solo-roll-input').value='';
+  if(isWin(newMask)){
+    updateSoloUI();
+    document.getElementById('solo-play').style.display='none';
+    document.getElementById('solo-win').style.display='block';
+    document.getElementById('solo-win-msg').textContent=`Completed in ${sState.rolls} roll${sState.rolls!==1?'s':''} using optimal strategy.`;
+    return;
+  }
+  document.getElementById('solo-hint').innerHTML='Enter a roll to see the optimal move.';
+  updateSoloUI();
+};
+
+document.getElementById('solo-roll-input').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('solo-apply-btn').click();});
+
+document.getElementById('solo-undo-btn').onclick=function(){
+  if(!sHistory.length) return;
+  sState=sHistory.pop();
+  document.getElementById('solo-roll-input').value='';
+  document.getElementById('solo-hint').innerHTML='Enter a roll to see the optimal move.';
+  updateSoloUI();
+  const log=document.getElementById('solo-log');
+  if(log.firstChild) log.removeChild(log.firstChild);
+};
+
+function addSoloLog(roll,cell,wasted){
+  const log=document.getElementById('solo-log');
+  const d=document.createElement('div'); d.className='log-entry';
+  d.innerHTML=wasted
+    ?`Roll <b>${roll}</b> — wasted (no matching cell)`
+    :`Roll <b>${roll}</b> → mark cell <b>${cell}</b> (value ${sBoard[cell]})`;
+  log.insertBefore(d,log.firstChild);
+}
+
+function soloGoSetup(){
+  document.getElementById('solo-setup').style.display='block';
+  document.getElementById('solo-play').style.display='none';
+  document.getElementById('solo-win').style.display='none';
+  document.getElementById('solo-error').textContent='';
+  document.querySelectorAll('#solo-setup-grid .cell').forEach(c=>c.classList.remove('invalid'));
+}
+
+document.getElementById('solo-newboard-btn').onclick=soloGoSetup;
+document.getElementById('solo-win-newboard-btn').onclick=soloGoSetup;
+document.getElementById('solo-replay-btn').onclick=showSoloPlay;
+document.getElementById('solo-win-replay-btn').onclick=showSoloPlay;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HEAD-TO-HEAD
+// ═══════════════════════════════════════════════════════════════════════════
+makeSetupGrid('h2h-grid1');
+makeSetupGrid('h2h-grid2');
+
+document.getElementById('h2h-clear-btn').onclick=()=>{
+  clearBoard('h2h-grid1'); clearBoard('h2h-grid2');
+  document.getElementById('h2h-error').textContent='';
+  document.getElementById('h2h-results').style.display='none';
+};
+
+document.getElementById('h2h-solve-btn').onclick=function(){
+  const r1=readBoard('h2h-grid1'), r2=readBoard('h2h-grid2');
+  if(r1.bad.length||r2.bad.length){document.getElementById('h2h-error').textContent='All cells must be 2–12.';return;}
+  document.getElementById('h2h-error').textContent='';
+  this.disabled=true; this.textContent='Computing…';
+  setTimeout(()=>{
+    const b1=r1.vals, b2=r2.vals;
+    const s1=solveSingle(b1), s2=solveSingle(b2);
+    const {W1,W2,D}=solveH2H(b1,s1.V,s1.strat,b2,s2.V,s2.strat);
+    const key=0*512+0;
+    const w1=W1[key],w2=W2[key],d=D[key];
+    const e1=ffloat(s1.V[0]),e2=ffloat(s2.V[0]);
+
+    document.getElementById('h2h-solo-stats').innerHTML=`<table>
+      <tr><td>Board 1 expected rolls</td><td>${e1.toFixed(4)}</td></tr>
+      <tr><td>Board 2 expected rolls</td><td>${e2.toFixed(4)}</td></tr>
+    </table>`;
+
+    document.getElementById('h2h-result-cards').innerHTML=`
+      <div class="result-card">
+        <div class="rc-label">Board 1 wins</div>
+        <div class="rc-val">${pct(w1)}</div>
+        <div class="rc-frac">${fracStr(w1)}</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Board 2 wins</div>
+        <div class="rc-val">${pct(w2)}</div>
+        <div class="rc-frac">${fracStr(w2)}</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Tie</div>
+        <div class="rc-val">${pct(d)}</div>
+        <div class="rc-frac">${fracStr(d)}</div>
+      </div>`;
+
+    document.getElementById('h2h-results').style.display='block';
+    this.disabled=false; this.textContent='Compute probabilities';
+  },10);
+};
+
+document.getElementById('h2h-reset-btn').onclick=()=>{
+  document.getElementById('h2h-results').style.display='none';
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SOLO 4x4
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Win lines for 4x4: 4 rows, 4 columns, 2 main diagonals only
+const WLINES4=[];
+for(let r=0;r<4;r++) WLINES4.push([r*4,r*4+1,r*4+2,r*4+3]);       // rows
+for(let c=0;c<4;c++) WLINES4.push([c,c+4,c+8,c+12]);               // cols
+WLINES4.push([0,5,10,15]);                                           // main diag
+WLINES4.push([3,6,9,12]);                                            // anti diag
+const WMASKS4=WLINES4.map(l=>l.reduce((m,i)=>m|(1<<i),0));
+
+const WIN4_SET=new Set();
+for(let m=0;m<65536;m++) if(WMASKS4.some(L=>(m&L)===L)) WIN4_SET.add(m);
+function isWin4(m){return WIN4_SET.has(m);}
+
+function getWinLine4(m){
+  for(const L of WLINES4) if(L.every(i=>m&(1<<i))) return new Set(L);
+  return new Set();
+}
+
+function bc16(n){let c=0;while(n){c+=n&1;n>>=1;}return c;}
+function mark4(m,i){return m|(1<<i);}
+
+function solveSingle4(board){
+  const V={}, strat={};
+  // Only store non-winning states; winning states = 0
+  // Process by popcount descending
+  for(let k=16;k>=0;k--){
+    for(let m=0;m<65536;m++){
+      if(bc16(m)!==k) continue;
+      if(isWin4(m)){V[m]=ZERO;continue;}
+      const unmarked=[...Array(16).keys()].filter(i=>!(m&(1<<i)));
+      const hittable=new Set(unmarked.map(i=>board[i]));
+      let pH=ZERO,fs=ZERO;
+      for(const v of DVALS){
+        if(!hittable.has(v)) continue;
+        pH=fadd(pH,DP[v]);
+        const cands=unmarked.filter(i=>board[i]===v);
+        let best=null,bc2=-1;
+        for(const c of cands){
+          const nm=mark4(m,c);
+          const vv=isWin4(nm)?ZERO:V[nm];
+          if(best===null||flt(vv,best)){best=vv;bc2=c;}
+        }
+        strat[m+'_'+v]=bc2;
+        fs=fadd(fs,fmul(DP[v],best));
+      }
+      V[m]=fdiv(fadd(ONE,fs),pH);
+    }
+  }
+  return{V,strat};
+}
+
+function makeSetupGrid4(containerId){
+  const g=document.getElementById(containerId);
+  g.innerHTML='';
+  for(let i=0;i<16;i++){
+    const div=document.createElement('div');
+    div.className='cell';
+    div.innerHTML=`<span class="cell-idx">${i}</span><input type="number" min="2" max="12" value="7" id="${containerId}-c${i}">`;
+    g.appendChild(div);
+  }
+}
+
+function readBoard4(containerId){
+  const vals=[],bad=[];
+  for(let i=0;i<16;i++){
+    const inp=document.getElementById(containerId+'-c'+i);
+    const cell=inp.closest('.cell');
+    cell.classList.remove('invalid');
+    const v=parseInt(inp.value);
+    if(isNaN(v)||v<2||v>12){bad.push(i);cell.classList.add('invalid');}
+    vals.push(v);
+  }
+  return{vals,bad};
+}
+
+function clearBoard4(containerId){
+  for(let i=0;i<16;i++) document.getElementById(containerId+'-c'+i).value=7;
+  document.querySelectorAll(`#${containerId} .cell`).forEach(c=>c.classList.remove('invalid'));
+}
+
+makeSetupGrid4('s4-setup-grid');
+
+let s4Board,s4V,s4Strat,s4State,s4History;
+
+document.getElementById('s4-clear-btn').onclick=()=>{
+  clearBoard4('s4-setup-grid');
+  document.getElementById('s4-error').textContent='';
+};
+
+document.getElementById('s4-solve-btn').onclick=function(){
+  const {vals,bad}=readBoard4('s4-setup-grid');
+  if(bad.length){document.getElementById('s4-error').textContent='All cells must be 2–12.';return;}
+  document.getElementById('s4-error').textContent='';
+  this.disabled=true; this.textContent='Solving… (may take a few seconds)';
+  setTimeout(()=>{
+    s4Board=vals;
+    const res=solveSingle4(s4Board); s4V=res.V; s4Strat=res.strat;
+    this.disabled=false; this.textContent='Solve & start playing';
+    showS4Play();
+  },20);
+};
+
+function showS4Play(){
+  document.getElementById('s4-setup').style.display='none';
+  document.getElementById('s4-play').style.display='block';
+  document.getElementById('s4-win').style.display='none';
+  s4State={mask:0,rolls:0}; s4History=[];
+  buildPlayGrid4('s4-play-grid',s4Board);
+  document.getElementById('s4-log').innerHTML='';
+  document.getElementById('s4-roll-input').value='';
+  updateS4UI();
+}
+
+function buildPlayGrid4(gid,board){
+  const g=document.getElementById(gid);
+  g.innerHTML='';
+  for(let i=0;i<16;i++){
+    const div=document.createElement('div');
+    div.className='cell'; div.id=gid+'-cell'+i;
+    div.innerHTML=`<span class="cell-idx">${i}</span><span>${board[i]}</span>`;
+    g.appendChild(div);
+  }
+}
+
+function updateS4UI(suggestedCell){
+  const mask=s4State.mask;
+  const winCells=isWin4(mask)?getWinLine4(mask):new Set();
+  for(let i=0;i<16;i++){
+    const el=document.getElementById('s4-play-grid-cell'+i);
+    el.className='cell';
+    if(winCells.size&&winCells.has(i)) el.className='cell winning';
+    else if(mask&(1<<i)) el.className='cell marked';
+    else if(suggestedCell===i) el.className='cell suggested';
+  }
+  const rem=ffloat(s4V[mask]||ZERO);
+  document.getElementById('s4-stats').innerHTML=`<table>
+    <tr><td>Cells marked</td><td>${bc16(mask)} / 16</td></tr>
+    <tr><td>Expected rolls remaining</td><td>${rem.toFixed(3)}</td></tr>
+    <tr><td>Rolls used so far</td><td>${s4State.rolls}</td></tr>
+  </table>`;
+}
+
+function s4Hint(v){
+  const hint=document.getElementById('s4-hint');
+  if(v===null||isNaN(v)||v<2||v>12){hint.innerHTML='Enter a roll to see the optimal move.';updateS4UI();return;}
+  const mask=s4State.mask;
+  const key=mask+'_'+v;
+  const unmarked=[...Array(16).keys()].filter(i=>!(mask&(1<<i)));
+  const hits=unmarked.filter(i=>s4Board[i]===v);
+  if(!hits.length){hint.innerHTML=`Roll <b>${v}</b> — no matching cell. This roll is wasted.`;updateS4UI();return;}
+  const cell=s4Strat[key];
+  hint.innerHTML=`Roll <b>${v}</b> — mark cell <b>${cell}</b> (value&nbsp;${s4Board[cell]}).`;
+  updateS4UI(cell);
+}
+
+document.getElementById('s4-roll-input').addEventListener('input',function(){s4Hint(parseInt(this.value));});
+document.getElementById('s4-roll-input').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('s4-apply-btn').click();});
+
+document.getElementById('s4-apply-btn').onclick=function(){
+  const v=parseInt(document.getElementById('s4-roll-input').value);
+  if(isNaN(v)||v<2||v>12) return;
+  const mask=s4State.mask;
+  const key=mask+'_'+v;
+  const unmarked=[...Array(16).keys()].filter(i=>!(mask&(1<<i)));
+  const hits=unmarked.filter(i=>s4Board[i]===v);
+  s4History.push({mask,rolls:s4State.rolls});
+  s4State.rolls++;
+  if(!hits.length){
+    addS4Log(v,null,true);
+    document.getElementById('s4-roll-input').value='';
+    document.getElementById('s4-hint').innerHTML='Enter a roll to see the optimal move.';
+    updateS4UI();
+    return;
+  }
+  const cell=s4Strat[key];
+  const newMask=mark4(mask,cell);
+  s4State.mask=newMask;
+  addS4Log(v,cell,false);
+  document.getElementById('s4-roll-input').value='';
+  if(isWin4(newMask)){
+    updateS4UI();
+    document.getElementById('s4-play').style.display='none';
+    document.getElementById('s4-win').style.display='block';
+    document.getElementById('s4-win-msg').textContent=`Completed in ${s4State.rolls} roll${s4State.rolls!==1?'s':''} using optimal strategy.`;
+    return;
+  }
+  document.getElementById('s4-hint').innerHTML='Enter a roll to see the optimal move.';
+  updateS4UI();
+};
+
+document.getElementById('s4-undo-btn').onclick=function(){
+  if(!s4History.length) return;
+  s4State=s4History.pop();
+  document.getElementById('s4-roll-input').value='';
+  document.getElementById('s4-hint').innerHTML='Enter a roll to see the optimal move.';
+  updateS4UI();
+  const log=document.getElementById('s4-log');
+  if(log.firstChild) log.removeChild(log.firstChild);
+};
+
+function addS4Log(roll,cell,wasted){
+  const log=document.getElementById('s4-log');
+  const d=document.createElement('div'); d.className='log-entry';
+  d.innerHTML=wasted
+    ?`Roll <b>${roll}</b> — wasted (no matching cell)`
+    :`Roll <b>${roll}</b> → mark cell <b>${cell}</b> (value ${s4Board[cell]})`;
+  log.insertBefore(d,log.firstChild);
+}
+
+function s4GoSetup(){
+  document.getElementById('s4-setup').style.display='block';
+  document.getElementById('s4-play').style.display='none';
+  document.getElementById('s4-win').style.display='none';
+  document.getElementById('s4-error').textContent='';
+  document.querySelectorAll('#s4-setup-grid .cell').forEach(c=>c.classList.remove('invalid'));
+}
+
+document.getElementById('s4-newboard-btn').onclick=s4GoSetup;
+document.getElementById('s4-win-newboard-btn').onclick=s4GoSetup;
+document.getElementById('s4-replay-btn').onclick=showS4Play;
+document.getElementById('s4-win-replay-btn').onclick=showS4Play;
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+})();
+</script>
+
+</body></html>
