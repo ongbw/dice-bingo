@@ -1,336 +1,748 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dice Bingo Solver — David J. Hemmer and Benjamin W. Ong</title>
+<title>Dice Bingo Solver — Hemmer &amp; Ong</title>
+
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 16px;
-    line-height: 1.7;
-    color: #222;
-    background: #fff;
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem 4rem;
+/* Source Serif 4 */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/sourceserif4/v14/vEFI2_tTDB4M7-auWDN0ahZJW1gb8te1Xb7G.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/sourceserif4/v14/vEFI2_tTDB4M7-auWDN0ahZJW1gb8te1Xb7G.woff2) format('woff2');
+}
+
+/* Space Grotesk */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4C_k3HqU.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4C_k3HqU.woff2) format('woff2');
+}
+
+/* Space Mono */
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/spacemono/v17/i7dPIFZifjKcF5UAWdDRYEF8RXi4EwQ.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/spacemono/v17/i7dMIFZifjKcF5UAWdDRaPpZUFWaHi6WZ3Q.woff2) format('woff2');
+}
+
+  :root{
+    --ink:#15212B;
+    --ink-soft:#3c4a55;
+    --paper:#FBFAF6;
+    --rule:#DCE3E0;
+    --rule-strong:#c3cdc9;
+    --vermilion:#E5482F;
+    --vermilion-soft:#fbe6e2;
+    --prob:#2D6E8E;
+    --prob-soft:#e4eef3;
+    --gold:#C8922A;
+    --gold-soft:#f6ecd6;
+    --good:#3f8f5b;
+    --good-soft:#e7f2ea;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+    --serif:'Source Serif 4',Georgia,serif;
+    --mono:'Space Mono','Courier New',monospace;
   }
 
-  h1 { font-size: 1.6rem; font-weight: normal; margin-bottom: 0.25rem; }
-  h2 { font-size: 1.15rem; font-weight: normal; margin: 2rem 0 0.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; }
-  p  { margin-bottom: 0.75rem; color: #333; }
-  a  { color: #00274C; }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
-  .site-header { border-bottom: 2px solid #00274C; padding-bottom: 0.75rem; margin-bottom: 1.75rem; }
-  .site-header p { font-size: 0.9rem; color: #555; margin: 0; }
+  html{scroll-behavior:smooth;}
 
-  /* Tab nav */
-  .tab-nav { display: flex; gap: 0; border-bottom: 1px solid #bbb; margin-bottom: 1.5rem; }
-  .tab-btn {
-    background: none; border: none; border-bottom: 3px solid transparent;
-    padding: 0.5rem 1.25rem; font-family: Georgia, serif; font-size: 0.95rem;
-    color: #555; cursor: pointer; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
-  }
-  .tab-btn:hover { color: #00274C; }
-  .tab-btn.active { color: #00274C; border-bottom-color: #00274C; font-weight: bold; }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-
-  /* Board grids */
-  .board-wrap { display: flex; justify-content: center; margin: 1rem 0; }
-  .board-grid {
-    display: grid; grid-template-columns: repeat(3, 72px);
-    gap: 6px;
-  }
-  .board-grid.small { grid-template-columns: repeat(3, 56px); }
-
-  .cell {
-    width: 72px; height: 72px; position: relative;
-    border: 1px solid #aaa; border-radius: 4px;
-    display: flex; align-items: center; justify-content: center;
-    background: #fff; transition: background 0.15s, border-color 0.15s;
-  }
-  .board-grid.small .cell { width: 56px; height: 56px; }
-  .board-grid.grid4 .cell { width: 64px; height: 64px; }
-  .board-grid.grid4s .cell { width: 52px; height: 52px; }
-  .board-grid.grid4 .cell input, .board-grid.grid4s .cell span { font-size: 1rem; }
-  .cell input {
-    width: 100%; height: 100%; text-align: center;
-    font-size: 1.2rem; font-family: Georgia, serif;
-    border: none; background: transparent; color: #222; outline: none;
-  }
-  .board-grid.small .cell span { font-size: 1.1rem; font-family: Georgia, serif; font-weight: bold; }
-  .cell .cell-idx {
-    position: absolute; top: 3px; left: 5px;
-    font-size: 0.6rem; color: #aaa; font-family: sans-serif;
-  }
-  .cell.invalid { border-color: #c0392b; background: #fdf0ee; }
-  .cell.marked  { background: #e8f0f8; border-color: #7aace0; }
-  .cell.marked span { color: #003d8f; }
-  .cell.winning { background: #eaf5e8; border-color: #5aaa52; }
-  .cell.winning span { color: #1a6b15; }
-  .cell.suggested { border: 2px solid #00274C; background: #e8f0f8; }
-  .cell.suggested span { color: #00274C; }
-  .cell.dimmed { opacity: 0.4; }
-
-  /* Buttons */
-  .btn {
-    font-family: Georgia, serif; font-size: 0.9rem;
-    padding: 0.45rem 1.1rem; border: 1px solid #aaa;
-    background: #f9f9f9; color: #222; border-radius: 3px;
-    cursor: pointer; transition: background 0.12s;
-  }
-  .btn:hover { background: #eee; }
-  .btn:active { background: #ddd; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-primary { background: #00274C; color: #fff; border-color: #00274C; }
-  .btn-primary:hover { background: #003a70; }
-  .btn-primary:disabled { background: #7a9bb5; border-color: #7a9bb5; }
-
-  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 0.75rem; }
-
-  /* Error */
-  .error { font-size: 0.85rem; color: #c0392b; text-align: center; min-height: 1.2rem; margin-top: 0.4rem; }
-
-  /* Hint & stats */
-  .hint-box {
-    background: #f5f8fb; border: 1px solid #c5d8ec; border-radius: 4px;
-    padding: 0.6rem 0.9rem; font-size: 0.9rem; color: #333; margin-bottom: 0.75rem; min-height: 2.5rem;
-  }
-  .hint-box b { color: #00274C; }
-
-  .stats-box {
-    background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;
-    padding: 0.6rem 0.9rem; font-size: 0.875rem; margin-bottom: 0.75rem;
-  }
-  .stats-box table { width: 100%; border-collapse: collapse; }
-  .stats-box td { padding: 2px 0; }
-  .stats-box td:last-child { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; color: #00274C; }
-
-  /* Roll input row */
-  .roll-row { display: flex; gap: 8px; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
-  .roll-input {
-    width: 70px; height: 38px; text-align: center;
-    font-size: 1.1rem; font-family: Georgia, serif;
-    border: 1px solid #aaa; border-radius: 3px; background: #fff; color: #222;
+  body{
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.65;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--rule) 1px,transparent 1px),
+      linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+    background-size:26px 26px;
+    background-position:-1px -1px;
+    -webkit-font-smoothing:antialiased;
   }
 
-  /* Log */
-  .log-scroll { max-height: 160px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem 0.75rem; background: #fafafa; }
-  .log-entry { font-size: 0.85rem; color: #444; padding: 3px 0; border-bottom: 1px solid #eee; }
-  .log-entry:last-child { border-bottom: none; }
-  .log-entry b { color: #00274C; }
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px;}
 
-  /* Play layout */
-  .play-layout { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
-  .play-board-col { flex: 0 0 auto; }
-  .play-controls-col { flex: 1; min-width: 220px; }
+  /* ── Masthead ───────────────────────────────────────── */
+  .masthead{
+    padding:64px 0 36px;
+    border-bottom:2px solid var(--ink);
+    position:relative;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--prob);
+    margin-bottom:18px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow .pips{display:inline-flex;gap:3px;}
+  .eyebrow .pip{width:6px;height:6px;border-radius:50%;background:var(--ink);}
+  h1{
+    font-family:var(--disp);
+    font-weight:700;
+    font-size:clamp(2.4rem,6vw,4.2rem);
+    line-height:.98;
+    letter-spacing:-.02em;
+    margin-bottom:22px;
+  }
+  h1 .em{color:var(--vermilion);font-style:normal;}
+  .lede{
+    font-size:1.22rem;
+    max-width:60ch;
+    color:var(--ink-soft);
+    line-height:1.5;
+  }
+  .byline{
+    margin-top:26px;
+    font-family:var(--mono);
+    font-size:.82rem;
+    color:var(--ink-soft);
+    letter-spacing:.02em;
+  }
+  .byline b{color:var(--ink);font-weight:700;}
 
-  /* Section label */
-  .section-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.35rem; font-family: sans-serif; }
+  /* ── How it works strip ─────────────────────────────── */
+  .rules{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:0;
+    border-bottom:2px solid var(--ink);
+  }
+  .rule-step{
+    padding:24px 26px 28px;
+    border-right:1px solid var(--rule-strong);
+  }
+  .rule-step:last-child{border-right:none;}
+  .rule-step .num{
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.14em;
+    color:var(--vermilion);
+    text-transform:uppercase;
+    display:block;
+    margin-bottom:8px;
+  }
+  .rule-step h3{
+    font-family:var(--disp);
+    font-weight:600;
+    font-size:1.05rem;
+    margin-bottom:5px;
+  }
+  .rule-step p{font-size:.94rem;color:var(--ink-soft);line-height:1.45;}
 
-  /* H2H results */
-  .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 1rem 0; }
-  .result-card { text-align: center; background: #f5f8fb; border: 1px solid #c5d8ec; border-radius: 4px; padding: 0.75rem 0.5rem; }
-  .result-card .rc-label { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
-  .result-card .rc-val { font-size: 1.4rem; font-weight: bold; color: #00274C; font-family: 'Courier New', monospace; }
-  .result-card .rc-frac { font-size: 0.75rem; color: #888; margin-top: 2px; font-family: 'Courier New', monospace; }
+  /* ── Tabs ───────────────────────────────────────────── */
+  .tab-nav{
+    display:flex;
+    gap:6px;
+    margin:38px 0 0;
+    flex-wrap:wrap;
+  }
+  .tab-btn{
+    font-family:var(--disp);
+    font-weight:500;
+    font-size:.96rem;
+    padding:11px 20px;
+    border:1.5px solid var(--ink);
+    background:var(--paper);
+    color:var(--ink);
+    cursor:pointer;
+    border-radius:2px;
+    transition:background .12s,color .12s,transform .08s;
+  }
+  .tab-btn:hover{background:var(--gold-soft);}
+  .tab-btn:active{transform:translateY(1px);}
+  .tab-btn.active{background:var(--ink);color:var(--paper);}
+  .tab-btn:focus-visible{outline:3px solid var(--prob);outline-offset:2px;}
 
-  .h2h-boards { display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; margin: 1rem 0; }
-  .h2h-board-block { text-align: center; }
-  .h2h-board-block .board-label { font-size: 0.85rem; color: #555; margin-bottom: 0.5rem; }
+  .panel{
+    display:none;
+    border:1.5px solid var(--ink);
+    border-top:none;
+    background:var(--paper);
+    padding:30px 28px 36px;
+  }
+  .panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
 
-  .win-banner { text-align: center; padding: 1.5rem; background: #eaf5e8; border: 1px solid #5aaa52; border-radius: 4px; margin-top: 1rem; }
-  .win-banner h2 { border: none; margin: 0 0 0.5rem; font-size: 1.3rem; color: #1a6b15; }
-  .win-banner p { color: #2a7a24; margin: 0; }
+  /* phase title */
+  .phase-title{
+    font-family:var(--mono);
+    font-size:.74rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--prob);
+    margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .phase-title::before{
+    content:"";width:9px;height:9px;border-radius:50%;
+    background:var(--vermilion);flex:0 0 auto;
+  }
 
-  .phase-title { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.07em; font-family: sans-serif; margin-bottom: 0.5rem; }
+  .section-label{
+    font-family:var(--mono);
+    font-size:.7rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:9px;
+  }
 
-  footer { margin-top: 3rem; border-top: 1px solid #ccc; padding-top: 1rem; font-size: 0.85rem; color: #777; }
+  /* ── Boards ─────────────────────────────────────────── */
+  .board-wrap{display:flex;justify-content:center;margin:18px 0 8px;}
+  .board-grid{display:grid;gap:7px;}
+  .board-grid.g3{grid-template-columns:repeat(3,76px);}
+  .board-grid.g3 .cell{width:76px;height:76px;}
+  .board-grid.g3s{grid-template-columns:repeat(3,64px);}
+  .board-grid.g3s .cell{width:64px;height:64px;}
+  .board-grid.g4{grid-template-columns:repeat(4,66px);}
+  .board-grid.g4 .cell{width:66px;height:66px;}
+  .board-grid.g4s{grid-template-columns:repeat(4,56px);}
+  .board-grid.g4s .cell{width:56px;height:56px;}
+
+  .cell{
+    position:relative;
+    border:1.5px solid var(--rule-strong);
+    border-radius:3px;
+    display:flex;align-items:center;justify-content:center;
+    background:#fff;
+    transition:background .14s,border-color .14s,box-shadow .14s;
+  }
+  .cell input{
+    width:100%;height:100%;text-align:center;
+    font-family:var(--mono);font-size:1.25rem;font-weight:700;
+    border:none;background:transparent;color:var(--ink);outline:none;
+    border-radius:3px;
+  }
+  .cell input:focus{box-shadow:inset 0 0 0 2px var(--prob);}
+  .board-grid.g4 .cell input,.board-grid.g4s .cell input{font-size:1.05rem;}
+  .cell .val{font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--ink);}
+  .board-grid.g3s .val,.board-grid.g4 .val,.board-grid.g4s .val{font-size:1.05rem;}
+  .cell .cidx{
+    position:absolute;top:3px;left:5px;
+    font-family:var(--mono);font-size:.56rem;color:#b4bdc0;
+  }
+  .cell.invalid{border-color:var(--vermilion);background:var(--vermilion-soft);}
+
+  /* states */
+  .cell.marked{background:var(--ink);border-color:var(--ink);}
+  .cell.marked .val{color:var(--paper);}
+  .cell.premark{background:var(--ink);border-color:var(--ink);}
+  .cell.premark .val{color:var(--paper);}
+  /* the X overlay for marked cells */
+  .cell.marked::after,.cell.premark::after{
+    content:"";position:absolute;inset:0;border-radius:3px;
+    background:
+      linear-gradient(45deg,transparent 44%,var(--vermilion) 46%,var(--vermilion) 54%,transparent 56%),
+      linear-gradient(-45deg,transparent 44%,var(--vermilion) 46%,var(--vermilion) 54%,transparent 56%);
+    opacity:.9;
+  }
+  .cell.winning{background:var(--good-soft);border-color:var(--good);}
+  .cell.winning .val{color:var(--good);}
+  .cell.winning::after{
+    content:"";position:absolute;inset:0;border-radius:3px;
+    background:
+      linear-gradient(45deg,transparent 44%,var(--good) 46%,var(--good) 54%,transparent 56%),
+      linear-gradient(-45deg,transparent 44%,var(--good) 46%,var(--good) 54%,transparent 56%);
+    opacity:.85;
+  }
+  .cell.suggested{box-shadow:0 0 0 3px var(--gold);border-color:var(--gold);}
+  .cell.suggested .val{color:var(--gold);}
+  .cell.clickable{cursor:pointer;}
+  .cell.clickable:hover{border-color:var(--prob);box-shadow:0 0 0 2px var(--prob-soft);}
+
+  /* heatmap cells carry inline bg; keep value readable */
+  .cell.heat .val{color:var(--ink);mix-blend-mode:normal;}
+  .cell.heat .heatnum{
+    position:absolute;bottom:3px;right:5px;
+    font-family:var(--mono);font-size:.58rem;color:var(--ink-soft);
+  }
+
+  /* live heatmap toggle under the play board */
+  .heat-toggle{
+    display:flex;align-items:center;gap:7px;margin-top:14px;
+    font-family:var(--disp);font-size:.86rem;color:var(--ink);cursor:pointer;flex-wrap:wrap;
+  }
+  .heat-toggle input{width:15px;height:15px;accent-color:var(--prob);cursor:pointer;}
+  .heat-toggle .ht-hint{font-family:var(--serif);font-size:.82rem;color:var(--ink-soft);}
+  /* live-heat number badge on play cells */
+  .cell .livenum{
+    position:absolute;bottom:2px;right:4px;
+    font-family:var(--mono);font-size:.56rem;font-weight:700;
+  }
+  .board-grid.g4s .cell .livenum{font-size:.5rem;}
+
+  /* ── Buttons ───────────────────────────────────────── */
+  .btn{
+    font-family:var(--disp);font-weight:500;font-size:.92rem;
+    padding:10px 18px;border:1.5px solid var(--ink);
+    background:var(--paper);color:var(--ink);border-radius:2px;cursor:pointer;
+    transition:background .12s,transform .08s;
+  }
+  .btn:hover{background:var(--gold-soft);}
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:focus-visible{outline:3px solid var(--prob);outline-offset:2px;}
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-primary:hover{background:#243440;}
+  .btn-primary:disabled{background:#8a979f;border-color:#8a979f;}
+  .btn-danger{border-color:var(--vermilion);color:var(--vermilion);}
+  .btn-danger:hover{background:var(--vermilion-soft);}
+  .btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;}
+  .btn-row.center{justify-content:center;}
+
+  .error{font-family:var(--mono);font-size:.82rem;color:var(--vermilion);min-height:1.2rem;margin-top:12px;}
+
+  /* ── Toggle for setup mode ─────────────────────────── */
+  .mode-toggle{
+    display:inline-flex;border:1.5px solid var(--ink);border-radius:2px;overflow:hidden;margin-bottom:6px;
+  }
+  .mode-toggle button{
+    font-family:var(--disp);font-size:.84rem;font-weight:500;
+    padding:7px 15px;border:none;background:var(--paper);color:var(--ink-soft);cursor:pointer;
+  }
+  .mode-toggle button.on{background:var(--ink);color:var(--paper);}
+  .mode-toggle button:focus-visible{outline:3px solid var(--prob);outline-offset:-3px;}
+  .mode-help{font-size:.9rem;color:var(--ink-soft);margin:8px 0 4px;max-width:52ch;}
+
+  /* ── Play layout ───────────────────────────────────── */
+  .play-layout{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap;}
+  .play-board-col{flex:0 0 auto;}
+  .play-controls-col{flex:1;min-width:260px;}
+
+  /* stats */
+  .stats{
+    border:1.5px solid var(--rule-strong);border-radius:3px;
+    background:#fff;margin-bottom:20px;
+  }
+  .stats .row{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:10px 14px;border-bottom:1px solid var(--rule);
+  }
+  .stats .row:last-child{border-bottom:none;}
+  .stats .row .k{font-family:var(--serif);font-size:.92rem;color:var(--ink-soft);}
+  .stats .row .v{font-family:var(--mono);font-weight:700;font-size:1.02rem;color:var(--ink);}
+  .stats .row .v.big{font-size:1.4rem;color:var(--prob);}
+
+  /* roll input */
+  .roll-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+  .roll-input{
+    width:78px;height:44px;text-align:center;
+    font-family:var(--mono);font-size:1.2rem;font-weight:700;
+    border:1.5px solid var(--ink);border-radius:2px;background:#fff;color:var(--ink);
+  }
+  .roll-input:focus{outline:3px solid var(--prob);outline-offset:1px;}
+
+  /* dice faces for the roller */
+  .dice-roll{display:flex;gap:10px;align-items:center;margin:10px 0 14px;flex-wrap:wrap;}
+  .die{
+    width:46px;height:46px;border:1.5px solid var(--ink);border-radius:8px;background:#fff;
+    position:relative;flex:0 0 auto;
+  }
+  .die .dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--ink);}
+  .die.rolling{animation:wob .4s ease;}
+  @keyframes wob{0%{transform:rotate(0);}25%{transform:rotate(-8deg);}75%{transform:rotate(8deg);}100%{transform:rotate(0);}}
+  .dice-sum{font-family:var(--mono);font-weight:700;font-size:1.3rem;color:var(--vermilion);}
+  .dice-sum .lbl{font-family:var(--serif);font-size:.8rem;color:var(--ink-soft);font-weight:400;}
+
+  /* hint */
+  .hint{
+    border-left:3px solid var(--gold);background:var(--gold-soft);
+    padding:12px 15px;font-size:.96rem;border-radius:0 3px 3px 0;margin-bottom:20px;min-height:3rem;
+  }
+  .hint b{font-family:var(--mono);color:var(--ink);}
+  .hint.miss{border-color:var(--ink-soft);background:#f0f1ee;}
+
+  /* log */
+  .log{max-height:180px;overflow-y:auto;border:1.5px solid var(--rule-strong);border-radius:3px;background:#fff;}
+  .log .entry{
+    font-family:var(--mono);font-size:.82rem;color:var(--ink-soft);
+    padding:7px 13px;border-bottom:1px solid var(--rule);display:flex;gap:8px;
+  }
+  .log .entry:last-child{border-bottom:none;}
+  .log .entry .tag{color:var(--vermilion);font-weight:700;flex:0 0 auto;}
+  .log .entry.miss .tag{color:var(--ink-soft);}
+  .log .empty{padding:13px;font-family:var(--serif);font-size:.9rem;color:#a8b0b3;font-style:italic;}
+
+  /* auto-roll controls */
+  .auto-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+
+  /* win banner */
+  .win-banner{
+    border:1.5px solid var(--good);background:var(--good-soft);border-radius:3px;
+    padding:26px;text-align:center;
+  }
+  .win-banner .big{font-family:var(--disp);font-weight:700;font-size:2rem;color:var(--good);letter-spacing:-.01em;}
+  .win-banner p{color:#2c6e44;margin-top:6px;font-size:1.02rem;}
+  .win-banner .stat{font-family:var(--mono);font-weight:700;}
+
+  /* heatmap legend */
+  .legend{display:flex;align-items:center;gap:12px;margin:16px 0 4px;flex-wrap:wrap;}
+  .legend .bar{height:12px;width:160px;border-radius:6px;border:1px solid var(--rule-strong);
+    background:linear-gradient(90deg,#eef4f7,var(--prob));}
+  .legend .lab{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);}
+  .heat-note{font-size:.92rem;color:var(--ink-soft);max-width:60ch;margin-top:14px;line-height:1.5;}
+
+  /* h2h */
+  .h2h-boards{display:flex;gap:40px;flex-wrap:wrap;justify-content:center;margin:8px 0 4px;}
+  .h2h-block{text-align:center;}
+  .h2h-block .lab{font-family:var(--disp);font-weight:600;font-size:1rem;margin-bottom:12px;}
+  .results-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 4px;}
+  .rcard{
+    text-align:center;border:1.5px solid var(--rule-strong);border-radius:3px;padding:18px 10px;background:#fff;
+  }
+  .rcard.win1{border-color:var(--vermilion);}
+  .rcard.win2{border-color:var(--prob);}
+  .rcard .rl{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;}
+  .rcard .rv{font-family:var(--disp);font-weight:700;font-size:1.9rem;color:var(--ink);}
+  .rcard.win1 .rv{color:var(--vermilion);}
+  .rcard.win2 .rv{color:var(--prob);}
+  .rcard .rf{font-family:var(--mono);font-size:.72rem;color:#a8b0b3;margin-top:4px;}
+
+  /* footer */
+  footer{
+    padding:34px 0 60px;margin-top:30px;border-top:2px solid var(--ink);
+    font-family:var(--mono);font-size:.8rem;color:var(--ink-soft);line-height:1.7;
+  }
+  footer b{color:var(--ink);}
+
+  /* spinner */
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--paper);border-top-color:transparent;border-radius:50%;animation:sp .6s linear infinite;vertical-align:-1px;margin-right:6px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  @media (max-width:680px){
+    body{font-size:16px;}
+    .rules{grid-template-columns:1fr;}
+    .rule-step{border-right:none;border-bottom:1px solid var(--rule-strong);}
+    .rule-step:last-child{border-bottom:none;}
+    .board-grid.g3{grid-template-columns:repeat(3,64px);}
+    .board-grid.g3 .cell{width:64px;height:64px;}
+    .play-layout{gap:24px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;scroll-behavior:auto!important;transition:none!important;}
+  }
 </style>
 </head>
 <body>
 
-<div class="site-header">
-  <h1>Dice Bingo Solver</h1>
-  <p>David J. Hemmer and Benjamin W. Ong — Department of Mathematical Sciences, Michigan Technological University</p>
-</div>
+<div class="wrap">
 
-<p>
-  Each player fills a board with dice sums (2–12). On each turn a pair of dice is rolled;
-  players mark a matching cell on their board. The first to complete a row, column, or main diagonal wins.
-  This tool computes <em>optimal play</em> via exact backward induction.
-</p>
-
-<nav class="tab-nav">
-  <button class="tab-btn active" data-tab="solo">Solo 3×3</button>
-  <button class="tab-btn" data-tab="solo4">Solo 4×4</button>
-  <button class="tab-btn" data-tab="h2h">Head-to-head 3×3</button>
-</nav>
-
-<!-- ======================================================= SOLO TAB -->
-<div id="tab-solo" class="tab-panel active">
-
-  <div id="solo-setup">
-    <div class="phase-title">Enter your board (values 2–12)</div>
-    <div class="board-wrap"><div class="board-grid" id="solo-setup-grid"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c8"></div></div></div>
-    <div class="btn-row">
-      <button class="btn btn-primary" id="solo-solve-btn">Solve &amp; start playing</button>
-      <button class="btn" id="solo-clear-btn">Clear</button>
+  <!-- ── Masthead ─────────────────────────────────────── -->
+  <header class="masthead">
+    <div class="eyebrow">
+      <span class="pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span></span>
+      Optimal play via exact backward induction
     </div>
-    <div class="error" id="solo-error"></div>
-  </div>
+    <h1>Dice&nbsp;Bingo,<br>solved <span class="em">exactly</span>.</h1>
+    <p class="lede">
+      Fill a grid with dice sums. Roll two dice, mark a matching cell, race to complete a line.
+      This solver computes the optimal strategy for any board — and the exact expected number of rolls to win —
+      using rational arithmetic, no simulation.
+    </p>
+    <div class="byline">
+      <b>David&nbsp;J.&nbsp;Hemmer</b> &amp; <b>Benjamin&nbsp;W.&nbsp;Ong</b> &nbsp;·&nbsp; Dept. of Mathematical Sciences, Michigan Technological University
+    </div>
+  </header>
 
-  <div id="solo-play" style="display:none; margin-top:1rem;">
-    <div class="play-layout">
-      <div class="play-board-col">
-        <div class="phase-title">Board</div>
-        <div class="board-grid small" id="solo-play-grid"></div>
+  <!-- ── Rules strip ──────────────────────────────────── -->
+  <section class="rules">
+    <div class="rule-step">
+      <span class="num">⚀ The board</span>
+      <h3>Label every cell</h3>
+      <p>Each cell holds a value from 2 to 12 — a possible sum of two dice. Repeats are allowed.</p>
+    </div>
+    <div class="rule-step">
+      <span class="num">⚂ The turn</span>
+      <h3>Roll &amp; mark</h3>
+      <p>Roll 2d6. If a cell matches the sum and is unmarked, mark one. Ties are broken optimally.</p>
+    </div>
+    <div class="rule-step">
+      <span class="num">⚄ The win</span>
+      <h3>Complete a line</h3>
+      <p>First full row, column, or main diagonal wins. The solver minimizes expected rolls to get there.</p>
+    </div>
+  </section>
+
+  <!-- ── Tabs ─────────────────────────────────────────── -->
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="solo" role="tab">Solo · 3×3</button>
+    <button class="tab-btn" data-tab="solo4" role="tab">Solo · 4×4</button>
+    <button class="tab-btn" data-tab="heat" role="tab">Heatmap</button>
+    <button class="tab-btn" data-tab="h2h" role="tab">Head-to-head</button>
+  </nav>
+
+  <!-- ═══════════════════════════ SOLO 3×3 ═══════════════════════════ -->
+  <div id="tab-solo" class="panel active" role="tabpanel">
+
+    <div id="solo-setup">
+      <div class="phase-title">Set up the board</div>
+      <p class="mode-help" id="solo-mode-help">Enter a value (2–12) in each cell.</p>
+      <div class="mode-toggle" role="group" aria-label="Setup mode">
+        <button id="solo-mode-values" class="on">Enter values</button>
+        <button id="solo-mode-marks">Pre-mark cells</button>
       </div>
-      <div class="play-controls-col">
-        <div class="section-label">Statistics</div>
-        <div class="stats-box" id="solo-stats"></div>
-
-        <div class="section-label">Enter roll</div>
-        <div class="roll-row">
-          <input type="number" min="2" max="12" class="roll-input" id="solo-roll-input" placeholder="2–12">
-          <button class="btn btn-primary" id="solo-apply-btn">Apply</button>
-          <button class="btn" id="solo-undo-btn">Undo</button>
-        </div>
-
-        <div class="section-label">Optimal move</div>
-        <div class="hint-box" id="solo-hint">Enter a roll to see the optimal move.</div>
-
-        <div class="section-label">Move log</div>
-        <div class="log-scroll" id="solo-log"></div>
-
-        <div class="btn-row" style="margin-top:0.75rem; justify-content:flex-start;">
-          <button class="btn" id="solo-replay-btn">Replay same board</button>
-          <button class="btn" id="solo-newboard-btn">New board</button>
-        </div>
+      <div class="board-wrap"><div class="board-grid g3" id="solo-setup-grid"><div class="cell" data-idx="0"><span class="cidx">0</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c0" aria-label="Cell 0 value"></div><div class="cell" data-idx="1"><span class="cidx">1</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c1" aria-label="Cell 1 value"></div><div class="cell" data-idx="2"><span class="cidx">2</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c2" aria-label="Cell 2 value"></div><div class="cell" data-idx="3"><span class="cidx">3</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c3" aria-label="Cell 3 value"></div><div class="cell" data-idx="4"><span class="cidx">4</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c4" aria-label="Cell 4 value"></div><div class="cell" data-idx="5"><span class="cidx">5</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c5" aria-label="Cell 5 value"></div><div class="cell" data-idx="6"><span class="cidx">6</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c6" aria-label="Cell 6 value"></div><div class="cell" data-idx="7"><span class="cidx">7</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c7" aria-label="Cell 7 value"></div><div class="cell" data-idx="8"><span class="cidx">8</span><input type="number" min="2" max="12" value="7" id="solo-setup-grid-c8" aria-label="Cell 8 value"></div></div></div>
+      <div class="btn-row center">
+        <button class="btn btn-primary" id="solo-solve-btn">Solve &amp; play</button>
+        <button class="btn" id="solo-clear-btn">Reset</button>
       </div>
+      <div class="error" id="solo-error"></div>
     </div>
-  </div>
 
-  <div id="solo-win" style="display:none; margin-top:1rem;">
-    <div class="win-banner">
-      <h2>Bingo!</h2>
-      <p id="solo-win-msg"></p>
-    </div>
-    <div class="btn-row" style="margin-top:1rem;">
-      <button class="btn btn-primary" id="solo-win-replay-btn">Play again</button>
-      <button class="btn" id="solo-win-newboard-btn">New board</button>
-    </div>
-  </div>
-
-</div>
-
-<!-- ======================================================= SOLO 4x4 TAB -->
-<div id="tab-solo4" class="tab-panel">
-
-  <p style="font-size:0.9rem;">Win condition: complete any row, column, or one of the two main diagonals (all 4 cells). Solving 65,536 states — may take a few seconds.</p>
-
-  <div id="s4-setup">
-    <div class="phase-title">Enter your 4×4 board (values 2–12)</div>
-    <div class="board-wrap"><div class="board-grid" id="s4-setup-grid" style="grid-template-columns:repeat(4,64px);gap:5px;"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c8"></div><div class="cell"><span class="cell-idx">9</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c9"></div><div class="cell"><span class="cell-idx">10</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c10"></div><div class="cell"><span class="cell-idx">11</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c11"></div><div class="cell"><span class="cell-idx">12</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c12"></div><div class="cell"><span class="cell-idx">13</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c13"></div><div class="cell"><span class="cell-idx">14</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c14"></div><div class="cell"><span class="cell-idx">15</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c15"></div></div></div>
-    <div class="btn-row">
-      <button class="btn btn-primary" id="s4-solve-btn">Solve &amp; start playing</button>
-      <button class="btn" id="s4-clear-btn">Clear</button>
-    </div>
-    <div class="error" id="s4-error"></div>
-  </div>
-
-  <div id="s4-play" style="display:none; margin-top:1rem;">
-    <div class="play-layout">
-      <div class="play-board-col">
-        <div class="phase-title">Board</div>
-        <div class="board-grid" id="s4-play-grid" style="grid-template-columns:repeat(4,52px);gap:5px;"></div>
-      </div>
-      <div class="play-controls-col">
-        <div class="section-label">Statistics</div>
-        <div class="stats-box" id="s4-stats"></div>
-
-        <div class="section-label">Enter roll</div>
-        <div class="roll-row">
-          <input type="number" min="2" max="12" class="roll-input" id="s4-roll-input" placeholder="2–12">
-          <button class="btn btn-primary" id="s4-apply-btn">Apply</button>
-          <button class="btn" id="s4-undo-btn">Undo</button>
+    <div id="solo-play" style="display:none;">
+      <div class="play-layout">
+        <div class="play-board-col">
+          <div class="phase-title">Board</div>
+          <div class="board-grid g3s" id="solo-play-grid"></div>
+          <label class="heat-toggle"><input type="checkbox" id="solo-heat-toggle"> Show heatmap <span class="ht-hint">— rolls saved by marking each cell now</span></label>
         </div>
+        <div class="play-controls-col">
+          <div class="stats" id="solo-stats"></div>
 
-        <div class="section-label">Optimal move</div>
-        <div class="hint-box" id="s4-hint">Enter a roll to see the optimal move.</div>
+          <div class="section-label">Roll the dice</div>
+          <div class="auto-row">
+            <button class="btn btn-primary" id="solo-rollbtn">Roll 2d6</button>
+            <button class="btn" id="solo-autobtn">Auto-play to win</button>
+            <button class="btn" id="solo-stopbtn" style="display:none;">Stop</button>
+          </div>
+          <div class="dice-roll" id="solo-dice" style="display:none;">
+            <div class="die" id="solo-die1"></div>
+            <div class="die" id="solo-die2"></div>
+            <div class="dice-sum" id="solo-dicesum"></div>
+          </div>
 
-        <div class="section-label">Move log</div>
-        <div class="log-scroll" id="s4-log"></div>
+          <div class="section-label" style="margin-top:6px;">Or enter a roll</div>
+          <div class="roll-row">
+            <input type="number" min="2" max="12" class="roll-input" id="solo-roll-input" placeholder="2–12" aria-label="Roll value">
+            <button class="btn" id="solo-apply-btn">Apply</button>
+            <button class="btn" id="solo-undo-btn">Undo</button>
+          </div>
 
-        <div class="btn-row" style="margin-top:0.75rem; justify-content:flex-start;">
-          <button class="btn" id="s4-replay-btn">Replay same board</button>
-          <button class="btn" id="s4-newboard-btn">New board</button>
+          <div class="hint" id="solo-hint">Roll the dice, or type a value, to see the optimal move.</div>
+
+          <div class="section-label">Move log</div>
+          <div class="log" id="solo-log"></div>
+
+          <div class="btn-row">
+            <button class="btn" id="solo-replay-btn">Replay this board</button>
+            <button class="btn btn-danger" id="solo-newboard-btn">New board</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="s4-win" style="display:none; margin-top:1rem;">
-    <div class="win-banner">
-      <h2>Bingo!</h2>
-      <p id="s4-win-msg"></p>
-    </div>
-    <div class="btn-row" style="margin-top:1rem;">
-      <button class="btn btn-primary" id="s4-win-replay-btn">Play again</button>
-      <button class="btn" id="s4-win-newboard-btn">New board</button>
-    </div>
-  </div>
-
-</div>
-
-<!-- ======================================================= H2H TAB -->
-<div id="tab-h2h" class="tab-panel">
-
-  <p style="font-size:0.9rem;">Enter two boards. The solver computes exact win/loss/tie probabilities assuming each player follows their own solo-optimal strategy independently.</p>
-
-  <div id="h2h-setup">
-    <div class="h2h-boards">
-      <div class="h2h-board-block">
-        <div class="board-label">Board 1</div>
-        <div class="board-grid" id="h2h-grid1"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c8"></div></div>
+    <div id="solo-win" style="display:none;">
+      <div class="win-banner">
+        <div class="big">Bingo!</div>
+        <p id="solo-win-msg"></p>
       </div>
-      <div class="h2h-board-block">
-        <div class="board-label">Board 2</div>
-        <div class="board-grid" id="h2h-grid2"><div class="cell"><span class="cell-idx">0</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c0"></div><div class="cell"><span class="cell-idx">1</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c1"></div><div class="cell"><span class="cell-idx">2</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c2"></div><div class="cell"><span class="cell-idx">3</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c3"></div><div class="cell"><span class="cell-idx">4</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c4"></div><div class="cell"><span class="cell-idx">5</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c5"></div><div class="cell"><span class="cell-idx">6</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c6"></div><div class="cell"><span class="cell-idx">7</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c7"></div><div class="cell"><span class="cell-idx">8</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c8"></div></div>
+      <div class="btn-row center" style="margin-top:18px;">
+        <button class="btn btn-primary" id="solo-win-replay-btn">Play again</button>
+        <button class="btn" id="solo-win-newboard-btn">New board</button>
       </div>
     </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" id="h2h-solve-btn">Compute probabilities</button>
-      <button class="btn" id="h2h-clear-btn">Clear both</button>
-    </div>
-    <div class="error" id="h2h-error"></div>
   </div>
 
-  <div id="h2h-results" style="display:none; margin-top:1.5rem;">
-    <div class="section-label">Solo expected rolls</div>
-    <div class="stats-box" id="h2h-solo-stats"></div>
-    <div class="section-label">Head-to-head probabilities</div>
-    <div class="results-grid" id="h2h-result-cards"></div>
-    <div class="btn-row" style="margin-top:0.5rem; justify-content:flex-start;">
-      <button class="btn" id="h2h-reset-btn">New comparison</button>
+  <!-- ═══════════════════════════ SOLO 4×4 ═══════════════════════════ -->
+  <div id="tab-solo4" class="panel" role="tabpanel">
+    <p style="font-size:.95rem;color:var(--ink-soft);margin-bottom:18px;">
+      Win by completing any full row, column, or one of the two main diagonals (all four cells).
+      Solving all 65,536 states takes a moment.
+    </p>
+
+    <div id="s4-setup">
+      <div class="phase-title">Set up the board</div>
+      <p class="mode-help" id="s4-mode-help">Enter a value (2–12) in each cell.</p>
+      <div class="mode-toggle" role="group" aria-label="Setup mode">
+        <button id="s4-mode-values" class="on">Enter values</button>
+        <button id="s4-mode-marks">Pre-mark cells</button>
+      </div>
+      <div class="board-wrap"><div class="board-grid g4" id="s4-setup-grid"><div class="cell" data-idx="0"><span class="cidx">0</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c0" aria-label="Cell 0 value"></div><div class="cell" data-idx="1"><span class="cidx">1</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c1" aria-label="Cell 1 value"></div><div class="cell" data-idx="2"><span class="cidx">2</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c2" aria-label="Cell 2 value"></div><div class="cell" data-idx="3"><span class="cidx">3</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c3" aria-label="Cell 3 value"></div><div class="cell" data-idx="4"><span class="cidx">4</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c4" aria-label="Cell 4 value"></div><div class="cell" data-idx="5"><span class="cidx">5</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c5" aria-label="Cell 5 value"></div><div class="cell" data-idx="6"><span class="cidx">6</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c6" aria-label="Cell 6 value"></div><div class="cell" data-idx="7"><span class="cidx">7</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c7" aria-label="Cell 7 value"></div><div class="cell" data-idx="8"><span class="cidx">8</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c8" aria-label="Cell 8 value"></div><div class="cell" data-idx="9"><span class="cidx">9</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c9" aria-label="Cell 9 value"></div><div class="cell" data-idx="10"><span class="cidx">10</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c10" aria-label="Cell 10 value"></div><div class="cell" data-idx="11"><span class="cidx">11</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c11" aria-label="Cell 11 value"></div><div class="cell" data-idx="12"><span class="cidx">12</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c12" aria-label="Cell 12 value"></div><div class="cell" data-idx="13"><span class="cidx">13</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c13" aria-label="Cell 13 value"></div><div class="cell" data-idx="14"><span class="cidx">14</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c14" aria-label="Cell 14 value"></div><div class="cell" data-idx="15"><span class="cidx">15</span><input type="number" min="2" max="12" value="7" id="s4-setup-grid-c15" aria-label="Cell 15 value"></div></div></div>
+      <div class="btn-row center">
+        <button class="btn btn-primary" id="s4-solve-btn">Solve &amp; play</button>
+        <button class="btn" id="s4-clear-btn">Reset</button>
+      </div>
+      <div class="error" id="s4-error"></div>
+    </div>
+
+    <div id="s4-play" style="display:none;">
+      <div class="play-layout">
+        <div class="play-board-col">
+          <div class="phase-title">Board</div>
+          <div class="board-grid g4s" id="s4-play-grid"></div>
+          <label class="heat-toggle"><input type="checkbox" id="s4-heat-toggle"> Show heatmap <span class="ht-hint">— rolls saved by marking each cell now</span></label>
+        </div>
+        <div class="play-controls-col">
+          <div class="stats" id="s4-stats"></div>
+
+          <div class="section-label">Roll the dice</div>
+          <div class="auto-row">
+            <button class="btn btn-primary" id="s4-rollbtn">Roll 2d6</button>
+            <button class="btn" id="s4-autobtn">Auto-play to win</button>
+            <button class="btn" id="s4-stopbtn" style="display:none;">Stop</button>
+          </div>
+          <div class="dice-roll" id="s4-dice" style="display:none;">
+            <div class="die" id="s4-die1"></div>
+            <div class="die" id="s4-die2"></div>
+            <div class="dice-sum" id="s4-dicesum"></div>
+          </div>
+
+          <div class="section-label" style="margin-top:6px;">Or enter a roll</div>
+          <div class="roll-row">
+            <input type="number" min="2" max="12" class="roll-input" id="s4-roll-input" placeholder="2–12" aria-label="Roll value">
+            <button class="btn" id="s4-apply-btn">Apply</button>
+            <button class="btn" id="s4-undo-btn">Undo</button>
+          </div>
+
+          <div class="hint" id="s4-hint">Roll the dice, or type a value, to see the optimal move.</div>
+
+          <div class="section-label">Move log</div>
+          <div class="log" id="s4-log"></div>
+
+          <div class="btn-row">
+            <button class="btn" id="s4-replay-btn">Replay this board</button>
+            <button class="btn btn-danger" id="s4-newboard-btn">New board</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="s4-win" style="display:none;">
+      <div class="win-banner">
+        <div class="big">Bingo!</div>
+        <p id="s4-win-msg"></p>
+      </div>
+      <div class="btn-row center" style="margin-top:18px;">
+        <button class="btn btn-primary" id="s4-win-replay-btn">Play again</button>
+        <button class="btn" id="s4-win-newboard-btn">New board</button>
+      </div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════ HEATMAP ═══════════════════════════ -->
+  <div id="tab-heat" class="panel" role="tabpanel">
+    <p style="font-size:.95rem;color:var(--ink-soft);margin-bottom:18px;">
+      How much does each mark help? Enter a 3×3 board; the solver measures each open cell's
+      <em>value as the next move</em> — how many rolls you'd save by marking it. Pre-mark some cells
+      to see how the best next move shifts once a line is partly filled. Darker means a more valuable mark.
+    </p>
+
+    <div id="heat-setup">
+      <div class="phase-title">Enter a board</div>
+      <p class="mode-help" id="heat-mode-help">Enter a value (2–12) in each cell.</p>
+      <div class="mode-toggle" role="group" aria-label="Setup mode">
+        <button id="heat-mode-values" class="on">Enter values</button>
+        <button id="heat-mode-marks">Pre-mark cells</button>
+      </div>
+      <div class="board-wrap"><div class="board-grid g3" id="heat-setup-grid"><div class="cell" data-idx="0"><span class="cidx">0</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c0" aria-label="Cell 0 value"></div><div class="cell" data-idx="1"><span class="cidx">1</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c1" aria-label="Cell 1 value"></div><div class="cell" data-idx="2"><span class="cidx">2</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c2" aria-label="Cell 2 value"></div><div class="cell" data-idx="3"><span class="cidx">3</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c3" aria-label="Cell 3 value"></div><div class="cell" data-idx="4"><span class="cidx">4</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c4" aria-label="Cell 4 value"></div><div class="cell" data-idx="5"><span class="cidx">5</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c5" aria-label="Cell 5 value"></div><div class="cell" data-idx="6"><span class="cidx">6</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c6" aria-label="Cell 6 value"></div><div class="cell" data-idx="7"><span class="cidx">7</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c7" aria-label="Cell 7 value"></div><div class="cell" data-idx="8"><span class="cidx">8</span><input type="number" min="2" max="12" value="7" id="heat-setup-grid-c8" aria-label="Cell 8 value"></div></div></div>
+      <div class="btn-row center">
+        <button class="btn btn-primary" id="heat-solve-btn">Compute heatmap</button>
+        <button class="btn" id="heat-clear-btn">Reset</button>
+      </div>
+      <div class="error" id="heat-error"></div>
+    </div>
+
+    <div id="heat-results" style="display:none;">
+      <div class="phase-title">Cell importance</div>
+      <div class="board-wrap"><div class="board-grid g3" id="heat-grid"></div></div>
+      <div class="legend">
+        <span class="lab">less important</span>
+        <span class="bar"></span>
+        <span class="lab">more important</span>
+      </div>
+      <div class="stats" id="heat-stats" style="max-width:340px;margin-top:18px;"></div>
+      <p class="heat-note" id="heat-note"></p>
+      <div class="btn-row">
+        <button class="btn" id="heat-reset-btn">New board</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ HEAD-TO-HEAD ═══════════════════════════ -->
+  <div id="tab-h2h" class="panel" role="tabpanel">
+    <p style="font-size:.95rem;color:var(--ink-soft);margin-bottom:18px;">
+      Two boards, same rolls, each played by its own optimal strategy. The solver returns exact
+      win / loss / tie probabilities — not estimates.
+    </p>
+
+    <div id="h2h-setup">
+      <div class="h2h-boards">
+        <div class="h2h-block">
+          <div class="lab">Board 1</div>
+          <div class="board-grid g3" id="h2h-grid1"><div class="cell" data-idx="0"><span class="cidx">0</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c0" aria-label="Cell 0 value"></div><div class="cell" data-idx="1"><span class="cidx">1</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c1" aria-label="Cell 1 value"></div><div class="cell" data-idx="2"><span class="cidx">2</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c2" aria-label="Cell 2 value"></div><div class="cell" data-idx="3"><span class="cidx">3</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c3" aria-label="Cell 3 value"></div><div class="cell" data-idx="4"><span class="cidx">4</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c4" aria-label="Cell 4 value"></div><div class="cell" data-idx="5"><span class="cidx">5</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c5" aria-label="Cell 5 value"></div><div class="cell" data-idx="6"><span class="cidx">6</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c6" aria-label="Cell 6 value"></div><div class="cell" data-idx="7"><span class="cidx">7</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c7" aria-label="Cell 7 value"></div><div class="cell" data-idx="8"><span class="cidx">8</span><input type="number" min="2" max="12" value="7" id="h2h-grid1-c8" aria-label="Cell 8 value"></div></div>
+        </div>
+        <div class="h2h-block">
+          <div class="lab">Board 2</div>
+          <div class="board-grid g3" id="h2h-grid2"><div class="cell" data-idx="0"><span class="cidx">0</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c0" aria-label="Cell 0 value"></div><div class="cell" data-idx="1"><span class="cidx">1</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c1" aria-label="Cell 1 value"></div><div class="cell" data-idx="2"><span class="cidx">2</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c2" aria-label="Cell 2 value"></div><div class="cell" data-idx="3"><span class="cidx">3</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c3" aria-label="Cell 3 value"></div><div class="cell" data-idx="4"><span class="cidx">4</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c4" aria-label="Cell 4 value"></div><div class="cell" data-idx="5"><span class="cidx">5</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c5" aria-label="Cell 5 value"></div><div class="cell" data-idx="6"><span class="cidx">6</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c6" aria-label="Cell 6 value"></div><div class="cell" data-idx="7"><span class="cidx">7</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c7" aria-label="Cell 7 value"></div><div class="cell" data-idx="8"><span class="cidx">8</span><input type="number" min="2" max="12" value="7" id="h2h-grid2-c8" aria-label="Cell 8 value"></div></div>
+        </div>
+      </div>
+      <div class="btn-row center">
+        <button class="btn btn-primary" id="h2h-solve-btn">Compute probabilities</button>
+        <button class="btn" id="h2h-clear-btn">Reset both</button>
+      </div>
+      <div class="error" id="h2h-error"></div>
+    </div>
+
+    <div id="h2h-results" style="display:none;">
+      <div class="section-label">Solo expected rolls (from empty)</div>
+      <div class="stats" id="h2h-solo-stats" style="max-width:340px;"></div>
+      <div class="section-label" style="margin-top:18px;">Head-to-head outcome</div>
+      <div class="results-grid" id="h2h-cards"></div>
+      <div class="btn-row">
+        <button class="btn" id="h2h-reset-btn">New comparison</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Exact computation by backward induction over all board states, using BigInt rational arithmetic.<br>
+    No simulation, no external libraries. &nbsp;·&nbsp; <b>Hemmer &amp; Ong</b>, Michigan Technological University.
+  </footer>
 
 </div>
-
-<footer>
-  <p>Computations use exact rational arithmetic via BigInt fractions. No external libraries required.</p>
-</footer>
 
 <script>
 (function(){
 "use strict";
 
-// ── Exact rational arithmetic ─────────────────────────────────────────────
+/* ════════════ Exact rational arithmetic ════════════ */
 function gcd(a,b){a=a<0n?-a:a;b=b<0n?-b:b;while(b){const t=b;b=a%b;a=t;}return a;}
-function frac(n,d){n=BigInt(n);d=BigInt(d??1);if(d<0n){n=-n;d=-d;}const g=gcd(n<0n?-n:n,d);return{n:n/g,d:d/g};}
+function frac(n,d){n=BigInt(n);d=BigInt(d??1);if(d<0n){n=-n;d=-d;}const g=gcd(n<0n?-n:n,d)||1n;return{n:n/g,d:d/g};}
 function fadd(a,b){return frac(a.n*b.d+b.n*a.d,a.d*b.d);}
 function fsub(a,b){return frac(a.n*b.d-b.n*a.d,a.d*b.d);}
 function fmul(a,b){return frac(a.n*b.n,a.d*b.d);}
@@ -341,12 +753,12 @@ function ffloat(a){return Number(a.n)/Number(a.d);}
 function F(n,d){return frac(BigInt(n),d!=null?BigInt(d):1n);}
 const ZERO=F(0),ONE=F(1);
 
-// ── Dice distribution ──────────────────────────────────────────────────────
+/* ════════════ Dice distribution ════════════ */
 const DVALS=[2,3,4,5,6,7,8,9,10,11,12];
 const DP={2:F(1,36),3:F(2,36),4:F(3,36),5:F(4,36),6:F(5,36),7:F(6,36),
            8:F(5,36),9:F(4,36),10:F(3,36),11:F(2,36),12:F(1,36)};
 
-// ── Win detection ──────────────────────────────────────────────────────────
+/* ════════════ 3×3 win detection ════════════ */
 const WLINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 const WMASKS=WLINES.map(l=>l.reduce((m,i)=>m|(1<<i),0));
 const WIN_SET=new Set();
@@ -354,349 +766,78 @@ for(let m=0;m<512;m++) if(WMASKS.some(L=>(m&L)===L)) WIN_SET.add(m);
 function isWin(m){return WIN_SET.has(m);}
 function bc(n){let c=0;while(n){c+=n&1;n>>=1;}return c;}
 function mark(m,i){return m|(1<<i);}
+function getWinLine(m){for(const L of WLINES) if(L.every(i=>m&(1<<i))) return new Set(L);return new Set();}
 
-function getWinLine(m){
-  for(const L of WLINES) if(L.every(i=>m&(1<<i))) return new Set(L);
-  return new Set();
-}
-
-// ── Stage 1: single-board solver ───────────────────────────────────────────
+/* ════════════ 3×3 solver ════════════ */
 function solveSingle(board){
-  const V={}, strat={};
+  const V={},strat={};
   for(let m=0;m<512;m++) if(isWin(m)) V[m]=ZERO;
   for(let k=8;k>=0;k--){
     for(let m=0;m<512;m++){
       if(bc(m)!==k||isWin(m)) continue;
       const unmarked=[...Array(9).keys()].filter(i=>!(m&(1<<i)));
       const hittable=new Set(unmarked.map(i=>board[i]));
-      let pH=ZERO, fs=ZERO;
+      let pH=ZERO,fs=ZERO;
       for(const v of DVALS){
         if(!hittable.has(v)) continue;
         pH=fadd(pH,DP[v]);
         const cands=unmarked.filter(i=>board[i]===v);
-        let best=null,bc2=-1;
-        for(const c of cands){const vv=V[mark(m,c)];if(best===null||flt(vv,best)){best=vv;bc2=c;}}
-        strat[m+'_'+v]=bc2;
+        let best=null,bcell=-1;
+        for(const c of cands){const vv=V[mark(m,c)];if(best===null||flt(vv,best)){best=vv;bcell=c;}}
+        strat[m+'_'+v]=bcell;
         fs=fadd(fs,fmul(DP[v],best));
       }
-      V[m]=fdiv(fadd(ONE,fs),pH);
+      V[m]= pH.n===0n ? ZERO : fdiv(fadd(ONE,fs),pH);
     }
   }
   return{V,strat};
 }
+function nextMask(board,strat,mask,v){const key=mask+'_'+v;if(!(key in strat)) return mask;return mark(mask,strat[key]);}
 
-function nextMask(board,strat,mask,v){
-  const key=mask+'_'+v;
-  if(!(key in strat)) return mask;
-  return mark(mask,strat[key]);
-}
-
-// ── Stage 2: joint head-to-head ────────────────────────────────────────────
-function solveH2H(board1,V1,strat1,board2,V2,strat2){
+/* ════════════ Head-to-head joint solver ════════════ */
+function solveH2H(b1,V1,s1,b2,V2,s2){
   const W1={},W2={},D={};
   for(let total=18;total>=0;total--){
     for(let m1=0;m1<512;m1++){
-      const pc1=bc(m1);
-      if(pc1>total) continue;
-      const pc2=total-pc1;
-      if(pc2>9) continue;
+      const pc1=bc(m1);if(pc1>total) continue;
+      const pc2=total-pc1;if(pc2>9) continue;
       for(let m2=0;m2<512;m2++){
         if(bc(m2)!==pc2) continue;
         if(isWin(m1)||isWin(m2)) continue;
         const key=m1*512+m2;
         let imw1=ZERO,imw2=ZERO,imd=ZERO,fw1=ZERO,fw2=ZERO,fd=ZERO,pStay=ZERO;
         for(const s of DVALS){
-          const n1=nextMask(board1,strat1,m1,s);
-          const n2=nextMask(board2,strat2,m2,s);
-          const w1n=isWin(n1),w2n=isWin(n2);
-          if(w1n&&w2n) imd=fadd(imd,DP[s]);
-          else if(w1n)  imw1=fadd(imw1,DP[s]);
-          else if(w2n)  imw2=fadd(imw2,DP[s]);
+          const n1=nextMask(b1,s1,m1,s),n2=nextMask(b2,s2,m2,s);
+          const w1=isWin(n1),w2=isWin(n2);
+          if(w1&&w2) imd=fadd(imd,DP[s]);
+          else if(w1) imw1=fadd(imw1,DP[s]);
+          else if(w2) imw2=fadd(imw2,DP[s]);
           else if(n1===m1&&n2===m2) pStay=fadd(pStay,DP[s]);
-          else{
-            const nk=n1*512+n2;
-            fw1=fadd(fw1,fmul(DP[s],W1[nk]));
-            fw2=fadd(fw2,fmul(DP[s],W2[nk]));
-            fd =fadd(fd, fmul(DP[s],D[nk]));
-          }
+          else{const nk=n1*512+n2;fw1=fadd(fw1,fmul(DP[s],W1[nk]));fw2=fadd(fw2,fmul(DP[s],W2[nk]));fd=fadd(fd,fmul(DP[s],D[nk]));}
         }
         const denom=fsub(ONE,pStay);
         if(feq(denom,ZERO)){W1[key]=ZERO;W2[key]=ZERO;D[key]=ZERO;}
-        else{
-          W1[key]=fdiv(fadd(imw1,fw1),denom);
-          W2[key]=fdiv(fadd(imw2,fw2),denom);
-          D[key] =fdiv(fadd(imd, fd ),denom);
-        }
+        else{W1[key]=fdiv(fadd(imw1,fw1),denom);W2[key]=fdiv(fadd(imw2,fw2),denom);D[key]=fdiv(fadd(imd,fd),denom);}
       }
     }
   }
   return{W1,W2,D};
 }
 
-// ── Fraction to string ─────────────────────────────────────────────────────
-function fracStr(f){return f.n+'/'+f.d;}
-function pct(f){return (ffloat(f)*100).toFixed(2)+'%';}
-
-// ── Board input helpers ────────────────────────────────────────────────────
-function makeSetupGrid(containerId){
-  const g=document.getElementById(containerId);
-  g.innerHTML='';
-  for(let i=0;i<9;i++){
-    const div=document.createElement('div');
-    div.className='cell';
-    div.innerHTML=`<span class="cell-idx">${i}</span><input type="number" min="2" max="12" value="7" id="${containerId}-c${i}">`;
-    g.appendChild(div);
-  }
-}
-
-function readBoard(containerId){
-  const vals=[],bad=[];
-  for(let i=0;i<9;i++){
-    const inp=document.getElementById(containerId+'-c'+i);
-    const cell=inp.closest('.cell');
-    cell.classList.remove('invalid');
-    const v=parseInt(inp.value);
-    if(isNaN(v)||v<2||v>12){bad.push(i);cell.classList.add('invalid');}
-    vals.push(v);
-  }
-  return{vals,bad};
-}
-
-function clearBoard(containerId){
-  for(let i=0;i<9;i++) document.getElementById(containerId+'-c'+i).value=7;
-  document.querySelectorAll(`#${containerId} .cell`).forEach(c=>c.classList.remove('invalid'));
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SOLO PLAY
-// ═══════════════════════════════════════════════════════════════════════════
-let sBoard,sV,sStrat,sState,sHistory;
-
-makeSetupGrid('solo-setup-grid');
-
-document.getElementById('solo-clear-btn').onclick=()=>{
-  clearBoard('solo-setup-grid');
-  document.getElementById('solo-error').textContent='';
-};
-
-document.getElementById('solo-solve-btn').onclick=function(){
-  const {vals,bad}=readBoard('solo-setup-grid');
-  if(bad.length){document.getElementById('solo-error').textContent='All cells must be 2–12.';return;}
-  document.getElementById('solo-error').textContent='';
-  this.disabled=true; this.textContent='Solving…';
-  setTimeout(()=>{
-    sBoard=vals;
-    const res=solveSingle(sBoard); sV=res.V; sStrat=res.strat;
-    this.disabled=false; this.textContent='Solve & start playing';
-    showSoloPlay();
-  },10);
-};
-
-function showSoloPlay(){
-  document.getElementById('solo-setup').style.display='none';
-  document.getElementById('solo-play').style.display='block';
-  document.getElementById('solo-win').style.display='none';
-  sState={mask:0,rolls:0}; sHistory=[];
-  buildPlayGrid('solo-play-grid',sBoard);
-  document.getElementById('solo-log').innerHTML='';
-  document.getElementById('solo-roll-input').value='';
-  updateSoloUI();
-}
-
-function buildPlayGrid(gid,board){
-  const g=document.getElementById(gid);
-  g.innerHTML='';
-  for(let i=0;i<9;i++){
-    const div=document.createElement('div');
-    div.className='cell'; div.id=gid+'-cell'+i;
-    div.innerHTML=`<span class="cell-idx">${i}</span><span>${board[i]}</span>`;
-    g.appendChild(div);
-  }
-}
-
-function updateSoloUI(suggestedCell){
-  const mask=sState.mask;
-  const winCells=isWin(mask)?getWinLine(mask):new Set();
-  for(let i=0;i<9;i++){
-    const el=document.getElementById('solo-play-grid-cell'+i);
-    el.className='cell';
-    if(winCells.size&&winCells.has(i)) el.className='cell winning';
-    else if(mask&(1<<i)) el.className='cell marked';
-    else if(suggestedCell===i) el.className='cell suggested';
-  }
-  const rem=ffloat(sV[mask]);
-  document.getElementById('solo-stats').innerHTML=`<table>
-    <tr><td>Cells marked</td><td>${bc(mask)} / 9</td></tr>
-    <tr><td>Expected rolls remaining</td><td>${rem.toFixed(3)}</td></tr>
-    <tr><td>Rolls used so far</td><td>${sState.rolls}</td></tr>
-  </table>`;
-}
-
-function soloHint(v){
-  const hint=document.getElementById('solo-hint');
-  if(v===null||isNaN(v)||v<2||v>12){hint.innerHTML='Enter a roll to see the optimal move.';updateSoloUI();return;}
-  const mask=sState.mask;
-  const key=mask+'_'+v;
-  const unmarked=[...Array(9).keys()].filter(i=>!(mask&(1<<i)));
-  const hits=unmarked.filter(i=>sBoard[i]===v);
-  if(!hits.length){hint.innerHTML=`Roll <b>${v}</b> — no matching cell. This roll is wasted.`;updateSoloUI();return;}
-  const cell=sStrat[key];
-  hint.innerHTML=`Roll <b>${v}</b> — mark cell <b>${cell}</b> (value&nbsp;${sBoard[cell]}).`;
-  updateSoloUI(cell);
-}
-
-document.getElementById('solo-roll-input').addEventListener('input',function(){soloHint(parseInt(this.value));});
-
-document.getElementById('solo-apply-btn').onclick=function(){
-  const v=parseInt(document.getElementById('solo-roll-input').value);
-  if(isNaN(v)||v<2||v>12) return;
-  const mask=sState.mask;
-  const key=mask+'_'+v;
-  const unmarked=[...Array(9).keys()].filter(i=>!(mask&(1<<i)));
-  const hits=unmarked.filter(i=>sBoard[i]===v);
-  sHistory.push({mask,rolls:sState.rolls});
-  sState.rolls++;
-  if(!hits.length){
-    addSoloLog(v,null,true);
-    document.getElementById('solo-roll-input').value='';
-    document.getElementById('solo-hint').innerHTML='Enter a roll to see the optimal move.';
-    updateSoloUI();
-    return;
-  }
-  const cell=sStrat[key];
-  const newMask=mark(mask,cell);
-  sState.mask=newMask;
-  addSoloLog(v,cell,false);
-  document.getElementById('solo-roll-input').value='';
-  if(isWin(newMask)){
-    updateSoloUI();
-    document.getElementById('solo-play').style.display='none';
-    document.getElementById('solo-win').style.display='block';
-    document.getElementById('solo-win-msg').textContent=`Completed in ${sState.rolls} roll${sState.rolls!==1?'s':''} using optimal strategy.`;
-    return;
-  }
-  document.getElementById('solo-hint').innerHTML='Enter a roll to see the optimal move.';
-  updateSoloUI();
-};
-
-document.getElementById('solo-roll-input').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('solo-apply-btn').click();});
-
-document.getElementById('solo-undo-btn').onclick=function(){
-  if(!sHistory.length) return;
-  sState=sHistory.pop();
-  document.getElementById('solo-roll-input').value='';
-  document.getElementById('solo-hint').innerHTML='Enter a roll to see the optimal move.';
-  updateSoloUI();
-  const log=document.getElementById('solo-log');
-  if(log.firstChild) log.removeChild(log.firstChild);
-};
-
-function addSoloLog(roll,cell,wasted){
-  const log=document.getElementById('solo-log');
-  const d=document.createElement('div'); d.className='log-entry';
-  d.innerHTML=wasted
-    ?`Roll <b>${roll}</b> — wasted (no matching cell)`
-    :`Roll <b>${roll}</b> → mark cell <b>${cell}</b> (value ${sBoard[cell]})`;
-  log.insertBefore(d,log.firstChild);
-}
-
-function soloGoSetup(){
-  document.getElementById('solo-setup').style.display='block';
-  document.getElementById('solo-play').style.display='none';
-  document.getElementById('solo-win').style.display='none';
-  document.getElementById('solo-error').textContent='';
-  document.querySelectorAll('#solo-setup-grid .cell').forEach(c=>c.classList.remove('invalid'));
-}
-
-document.getElementById('solo-newboard-btn').onclick=soloGoSetup;
-document.getElementById('solo-win-newboard-btn').onclick=soloGoSetup;
-document.getElementById('solo-replay-btn').onclick=showSoloPlay;
-document.getElementById('solo-win-replay-btn').onclick=showSoloPlay;
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HEAD-TO-HEAD
-// ═══════════════════════════════════════════════════════════════════════════
-makeSetupGrid('h2h-grid1');
-makeSetupGrid('h2h-grid2');
-
-document.getElementById('h2h-clear-btn').onclick=()=>{
-  clearBoard('h2h-grid1'); clearBoard('h2h-grid2');
-  document.getElementById('h2h-error').textContent='';
-  document.getElementById('h2h-results').style.display='none';
-};
-
-document.getElementById('h2h-solve-btn').onclick=function(){
-  const r1=readBoard('h2h-grid1'), r2=readBoard('h2h-grid2');
-  if(r1.bad.length||r2.bad.length){document.getElementById('h2h-error').textContent='All cells must be 2–12.';return;}
-  document.getElementById('h2h-error').textContent='';
-  this.disabled=true; this.textContent='Computing…';
-  setTimeout(()=>{
-    const b1=r1.vals, b2=r2.vals;
-    const s1=solveSingle(b1), s2=solveSingle(b2);
-    const {W1,W2,D}=solveH2H(b1,s1.V,s1.strat,b2,s2.V,s2.strat);
-    const key=0*512+0;
-    const w1=W1[key],w2=W2[key],d=D[key];
-    const e1=ffloat(s1.V[0]),e2=ffloat(s2.V[0]);
-
-    document.getElementById('h2h-solo-stats').innerHTML=`<table>
-      <tr><td>Board 1 expected rolls</td><td>${e1.toFixed(4)}</td></tr>
-      <tr><td>Board 2 expected rolls</td><td>${e2.toFixed(4)}</td></tr>
-    </table>`;
-
-    document.getElementById('h2h-result-cards').innerHTML=`
-      <div class="result-card">
-        <div class="rc-label">Board 1 wins</div>
-        <div class="rc-val">${pct(w1)}</div>
-        <div class="rc-frac">${fracStr(w1)}</div>
-      </div>
-      <div class="result-card">
-        <div class="rc-label">Board 2 wins</div>
-        <div class="rc-val">${pct(w2)}</div>
-        <div class="rc-frac">${fracStr(w2)}</div>
-      </div>
-      <div class="result-card">
-        <div class="rc-label">Tie</div>
-        <div class="rc-val">${pct(d)}</div>
-        <div class="rc-frac">${fracStr(d)}</div>
-      </div>`;
-
-    document.getElementById('h2h-results').style.display='block';
-    this.disabled=false; this.textContent='Compute probabilities';
-  },10);
-};
-
-document.getElementById('h2h-reset-btn').onclick=()=>{
-  document.getElementById('h2h-results').style.display='none';
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SOLO 4x4
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Win lines for 4x4: 4 rows, 4 columns, 2 main diagonals only
+/* ════════════ 4×4 win detection & solver ════════════ */
 const WLINES4=[];
-for(let r=0;r<4;r++) WLINES4.push([r*4,r*4+1,r*4+2,r*4+3]);       // rows
-for(let c=0;c<4;c++) WLINES4.push([c,c+4,c+8,c+12]);               // cols
-WLINES4.push([0,5,10,15]);                                           // main diag
-WLINES4.push([3,6,9,12]);                                            // anti diag
+for(let r=0;r<4;r++) WLINES4.push([r*4,r*4+1,r*4+2,r*4+3]);
+for(let c=0;c<4;c++) WLINES4.push([c,c+4,c+8,c+12]);
+WLINES4.push([0,5,10,15]);WLINES4.push([3,6,9,12]);
 const WMASKS4=WLINES4.map(l=>l.reduce((m,i)=>m|(1<<i),0));
-
 const WIN4_SET=new Set();
 for(let m=0;m<65536;m++) if(WMASKS4.some(L=>(m&L)===L)) WIN4_SET.add(m);
 function isWin4(m){return WIN4_SET.has(m);}
-
-function getWinLine4(m){
-  for(const L of WLINES4) if(L.every(i=>m&(1<<i))) return new Set(L);
-  return new Set();
-}
-
+function getWinLine4(m){for(const L of WLINES4) if(L.every(i=>m&(1<<i))) return new Set(L);return new Set();}
 function bc16(n){let c=0;while(n){c+=n&1;n>>=1;}return c;}
 function mark4(m,i){return m|(1<<i);}
-
 function solveSingle4(board){
-  const V={}, strat={};
-  // Only store non-winning states; winning states = 0
-  // Process by popcount descending
+  const V={},strat={};
   for(let k=16;k>=0;k--){
     for(let m=0;m<65536;m++){
       if(bc16(m)!==k) continue;
@@ -708,37 +849,56 @@ function solveSingle4(board){
         if(!hittable.has(v)) continue;
         pH=fadd(pH,DP[v]);
         const cands=unmarked.filter(i=>board[i]===v);
-        let best=null,bc2=-1;
-        for(const c of cands){
-          const nm=mark4(m,c);
-          const vv=isWin4(nm)?ZERO:V[nm];
-          if(best===null||flt(vv,best)){best=vv;bc2=c;}
-        }
-        strat[m+'_'+v]=bc2;
+        let best=null,bcell=-1;
+        for(const c of cands){const nm=mark4(m,c);const vv=isWin4(nm)?ZERO:V[nm];if(best===null||flt(vv,best)){best=vv;bcell=c;}}
+        strat[m+'_'+v]=bcell;
         fs=fadd(fs,fmul(DP[v],best));
       }
-      V[m]=fdiv(fadd(ONE,fs),pH);
+      V[m]= pH.n===0n ? ZERO : fdiv(fadd(ONE,fs),pH);
     }
   }
   return{V,strat};
 }
+function nextMask4(board,strat,mask,v){const key=mask+'_'+v;if(!(key in strat)) return mask;return mark4(mask,strat[key]);}
 
-function makeSetupGrid4(containerId){
-  const g=document.getElementById(containerId);
-  g.innerHTML='';
-  for(let i=0;i<16;i++){
+/* ════════════ Shared helpers ════════════ */
+function fracStr(f){return f.n+'/'+f.d;}
+function pct(f){return (ffloat(f)*100).toFixed(2)+'%';}
+function $(id){return document.getElementById(id);}
+
+/* dice face dot layouts (relative %) */
+const PIPS={
+  1:[[50,50]],
+  2:[[28,28],[72,72]],
+  3:[[26,26],[50,50],[74,74]],
+  4:[[28,28],[72,28],[28,72],[72,72]],
+  5:[[28,28],[72,28],[50,50],[28,72],[72,72]],
+  6:[[28,24],[72,24],[28,50],[72,50],[28,76],[72,76]]
+};
+function drawDie(el,face){
+  el.innerHTML='';
+  for(const [x,y] of PIPS[face]){
+    const d=document.createElement('div');d.className='dot';
+    d.style.left=`calc(${x}% - 4px)`;d.style.top=`calc(${y}% - 4px)`;
+    el.appendChild(d);
+  }
+}
+function rollPair(){const a=1+Math.floor(Math.random()*6),b=1+Math.floor(Math.random()*6);return[a,b];}
+
+/* setup grid: value-entry + pre-mark toggle */
+function makeSetupGrid(containerId,n){
+  const g=$(containerId);g.innerHTML='';
+  for(let i=0;i<n;i++){
     const div=document.createElement('div');
-    div.className='cell';
-    div.innerHTML=`<span class="cell-idx">${i}</span><input type="number" min="2" max="12" value="7" id="${containerId}-c${i}">`;
+    div.className='cell';div.dataset.idx=i;
+    div.innerHTML=`<span class="cidx">${i}</span><input type="number" min="2" max="12" value="7" id="${containerId}-c${i}" aria-label="Cell ${i} value">`;
     g.appendChild(div);
   }
 }
-
-function readBoard4(containerId){
+function readBoard(containerId,n){
   const vals=[],bad=[];
-  for(let i=0;i<16;i++){
-    const inp=document.getElementById(containerId+'-c'+i);
-    const cell=inp.closest('.cell');
+  for(let i=0;i<n;i++){
+    const inp=$(containerId+'-c'+i),cell=inp.closest('.cell');
     cell.classList.remove('invalid');
     const v=parseInt(inp.value);
     if(isNaN(v)||v<2||v>12){bad.push(i);cell.classList.add('invalid');}
@@ -746,161 +906,458 @@ function readBoard4(containerId){
   }
   return{vals,bad};
 }
-
-function clearBoard4(containerId){
-  for(let i=0;i<16;i++) document.getElementById(containerId+'-c'+i).value=7;
-  document.querySelectorAll(`#${containerId} .cell`).forEach(c=>c.classList.remove('invalid'));
+function clearSetup(containerId,n){
+  for(let i=0;i<n;i++){$(containerId+'-c'+i).value=7;}
+  $(containerId).querySelectorAll('.cell').forEach(c=>{c.classList.remove('invalid','premark');});
 }
 
-makeSetupGrid4('s4-setup-grid');
+/* ════════════════════════════════════════════════════════════
+   Generic solo controller (works for 3×3 and 4×4)
+   ════════════════════════════════════════════════════════════ */
+function makeSolo(cfg){
+  // cfg: {n, prefix, isWinFn, getWinFn, bcFn, markFn, solveFn, nextFn, gClassSetup, gClassPlay}
+  const P=cfg.prefix;
+  let board,V,strat,state,history,premarkMask=0,setupMode='values',autoTimer=null,heatOn=false;
 
-let s4Board,s4V,s4Strat,s4State,s4History;
+  makeSetupGrid(P+'-setup-grid',cfg.n);
 
-document.getElementById('s4-clear-btn').onclick=()=>{
-  clearBoard4('s4-setup-grid');
-  document.getElementById('s4-error').textContent='';
-};
+  // setup-mode toggle
+  const valuesBtn=$(P+'-mode-values'),marksBtn=$(P+'-mode-marks'),help=$(P+'-mode-help');
+  function setMode(mode){
+    setupMode=mode;
+    valuesBtn.classList.toggle('on',mode==='values');
+    marksBtn.classList.toggle('on',mode==='marks');
+    const grid=$(P+'-setup-grid');
+    grid.querySelectorAll('.cell').forEach(c=>{
+      const inp=c.querySelector('input');
+      if(mode==='marks'){
+        c.classList.add('clickable');
+        inp.disabled=true;inp.style.pointerEvents='none';
+      }else{
+        c.classList.remove('clickable');
+        inp.disabled=false;inp.style.pointerEvents='';
+      }
+    });
+    help.textContent= mode==='values'
+      ? 'Enter a value (2–12) in each cell.'
+      : 'Click cells that are already marked, then solve to play on from there.';
+  }
+  valuesBtn.onclick=()=>setMode('values');
+  marksBtn.onclick=()=>setMode('marks');
 
-document.getElementById('s4-solve-btn').onclick=function(){
-  const {vals,bad}=readBoard4('s4-setup-grid');
-  if(bad.length){document.getElementById('s4-error').textContent='All cells must be 2–12.';return;}
-  document.getElementById('s4-error').textContent='';
-  this.disabled=true; this.textContent='Solving… (may take a few seconds)';
+  // pre-mark click handling
+  $(P+'-setup-grid').addEventListener('click',e=>{
+    if(setupMode!=='marks') return;
+    const cell=e.target.closest('.cell');if(!cell) return;
+    const i=+cell.dataset.idx;
+    premarkMask^= (1<<i);
+    cell.classList.toggle('premark',!!(premarkMask&(1<<i)));
+  });
+
+  $(P+'-clear-btn').onclick=()=>{
+    clearSetup(P+'-setup-grid',cfg.n);premarkMask=0;$(P+'-error').textContent='';
+  };
+
+  $(P+'-solve-btn').onclick=function(){
+    const {vals,bad}=readBoard(P+'-setup-grid',cfg.n);
+    if(bad.length){$(P+'-error').textContent='Every cell needs a value from 2 to 12.';return;}
+    if(cfg.isWinFn(premarkMask)){$(P+'-error').textContent='That set of pre-marked cells already wins. Pick fewer.';return;}
+    $(P+'-error').textContent='';
+    this.disabled=true;this.innerHTML='<span class="spin"></span>Solving…';
+    const self=this;
+    setTimeout(()=>{
+      board=vals;
+      const res=cfg.solveFn(board);V=res.V;strat=res.strat;
+      self.disabled=false;self.textContent='Solve & play';
+      startPlay();
+    },20);
+  };
+
+  function startPlay(){
+    $(P+'-setup').style.display='none';
+    $(P+'-play').style.display='block';
+    $(P+'-win').style.display='none';
+    state={mask:premarkMask,rolls:0,start:premarkMask};
+    history=[];
+    buildPlayGrid();
+    $(P+'-log').innerHTML='<div class="empty">No rolls yet.</div>';
+    $(P+'-roll-input').value='';
+    $(P+'-dice').style.display='none';
+    update();
+  }
+
+  function buildPlayGrid(){
+    const g=$(P+'-play-grid');g.innerHTML='';
+    for(let i=0;i<cfg.n;i++){
+      const div=document.createElement('div');
+      div.className='cell';div.id=P+'-pc'+i;
+      div.innerHTML=`<span class="cidx">${i}</span><span class="val">${board[i]}</span>`;
+      g.appendChild(div);
+    }
+  }
+
+  function update(suggested){
+    const mask=state.mask;
+    const winCells=cfg.isWinFn(mask)?cfg.getWinFn(mask):new Set();
+    const won=winCells.size>0;
+    // live heatmap values for unmarked cells (rolls saved by marking now)
+    let liveVals=null,liveMax=1e-9;
+    if(heatOn && !won){
+      const cur=ffloat(V[mask]!=null?V[mask]:ZERO);
+      liveVals=[];
+      for(let i=0;i<cfg.n;i++){
+        if(mask&(1<<i)){liveVals.push(null);continue;}
+        const after=cfg.markFn(mask,i);
+        const va=cfg.isWinFn(after)?0:ffloat(V[after]!=null?V[after]:ZERO);
+        const saved=cur-va;
+        liveVals.push(saved);
+        if(saved>liveMax) liveMax=saved;
+      }
+    }
+    for(let i=0;i<cfg.n;i++){
+      const el=$(P+'-pc'+i);
+      el.className='cell';
+      el.style.background='';el.style.borderColor='';
+      // remove any prior live badge
+      const oldBadge=el.querySelector('.livenum');if(oldBadge) oldBadge.remove();
+      const valEl=el.querySelector('.val');if(valEl) valEl.style.color='';
+      if(winCells.size&&winCells.has(i)){ el.classList.add('winning'); continue; }
+      if(mask&(1<<i)){ el.classList.add('marked'); continue; }
+      if(liveVals){
+        const t=Math.max(0,liveVals[i])/liveMax; // 0..1
+        const r=Math.round(0xee+(0x2d-0xee)*t);
+        const g=Math.round(0xf4+(0x6e-0xf4)*t);
+        const b=Math.round(0xf7+(0x8e-0xf7)*t);
+        el.classList.add('heat');
+        el.style.background=`rgb(${r},${g},${b})`;
+        el.style.borderColor='#c3cdc9';
+        const dark=t>0.55;
+        if(valEl) valEl.style.color=dark?'#fff':'#15212B';
+        const badge=document.createElement('span');
+        badge.className='livenum';
+        badge.style.color=dark?'#dce8ee':'#3c4a55';
+        badge.textContent='−'+liveVals[i].toFixed(2);
+        el.appendChild(badge);
+      }
+      if(suggested===i) el.classList.add('suggested');
+    }
+    const rem=ffloat(V[mask]!=null?V[mask]:ZERO);
+    const total=cfg.n;
+    $(P+'-stats').innerHTML=`
+      <div class="row"><span class="k">Expected rolls remaining</span><span class="v big">${rem.toFixed(3)}</span></div>
+      <div class="row"><span class="k">Cells marked</span><span class="v">${cfg.bcFn(mask)} / ${total}</span></div>
+      <div class="row"><span class="k">Rolls used</span><span class="v">${state.rolls}</span></div>`;
+  }
+
+  function showHint(v){
+    const hint=$(P+'-hint');
+    if(v===null||isNaN(v)||v<2||v>12){hint.className='hint';hint.innerHTML='Roll the dice, or type a value, to see the optimal move.';update();return;}
+    const mask=state.mask,key=mask+'_'+v;
+    const unmarked=[...Array(cfg.n).keys()].filter(i=>!(mask&(1<<i)));
+    const hits=unmarked.filter(i=>board[i]===v);
+    if(!hits.length){hint.className='hint miss';hint.innerHTML=`Sum <b>${v}</b> — no open cell matches. This roll is wasted.`;update();return;}
+    const cell=strat[key];
+    hint.className='hint';
+    hint.innerHTML=`Sum <b>${v}</b> → mark cell <b>${cell}</b> (value ${board[cell]}). Outlined in gold.`;
+    update(cell);
+  }
+
+  function applyRoll(v,fromDice){
+    if(isNaN(v)||v<2||v>12) return;
+    const mask=state.mask,key=mask+'_'+v;
+    const unmarked=[...Array(cfg.n).keys()].filter(i=>!(mask&(1<<i)));
+    const hits=unmarked.filter(i=>board[i]===v);
+    history.push({mask,rolls:state.rolls});
+    state.rolls++;
+    if(!hits.length){
+      addLog(v,null,true);
+      $(P+'-roll-input').value='';
+      $(P+'-hint').className='hint miss';
+      $(P+'-hint').innerHTML=`Sum <b>${v}</b> — wasted (no matching open cell).`;
+      update();
+      return false;
+    }
+    const cell=strat[key],newMask=cfg.markFn(mask,cell);
+    state.mask=newMask;
+    addLog(v,cell,false);
+    $(P+'-roll-input').value='';
+    if(cfg.isWinFn(newMask)){
+      update();
+      stopAuto();
+      $(P+'-play').style.display='none';
+      $(P+'-win').style.display='block';
+      const fromPartial=state.start!==0;
+      $(P+'-win-msg').innerHTML=`Line completed in <span class="stat">${state.rolls}</span> roll${state.rolls!==1?'s':''} under optimal play`+
+        (fromPartial?` (starting from a partial board).`:`.`);
+      return true;
+    }
+    $(P+'-hint').className='hint';
+    $(P+'-hint').innerHTML='Roll the dice, or type a value, to see the optimal move.';
+    update();
+    return false;
+  }
+
+  function addLog(roll,cell,wasted){
+    const log=$(P+'-log');
+    if(log.querySelector('.empty')) log.innerHTML='';
+    const d=document.createElement('div');
+    d.className='entry'+(wasted?' miss':'');
+    d.innerHTML= wasted
+      ? `<span class="tag">${roll}</span><span>wasted — no matching cell</span>`
+      : `<span class="tag">${roll}</span><span>→ mark cell ${cell} (value ${board[cell]})</span>`;
+    log.insertBefore(d,log.firstChild);
+  }
+
+  // dice roll animation + apply
+  function doDiceRoll(thenApply){
+    const dice=$(P+'-dice');dice.style.display='flex';
+    const d1=$(P+'-die1'),d2=$(P+'-die2'),sumEl=$(P+'-dicesum');
+    const [a,b]=rollPair(),sum=a+b;
+    d1.classList.remove('rolling');d2.classList.remove('rolling');
+    void d1.offsetWidth;
+    d1.classList.add('rolling');d2.classList.add('rolling');
+    drawDie(d1,a);drawDie(d2,b);
+    sumEl.innerHTML=`= ${sum} <span class="lbl">sum</span>`;
+    showHint(sum);
+    if(thenApply){ setTimeout(()=>{ applyRoll(sum,true); }, 420); }
+    return sum;
+  }
+
+  $(P+'-rollbtn').onclick=()=>{ doDiceRoll(true); };
+
+  // auto-play
+  function stopAuto(){
+    if(autoTimer){clearInterval(autoTimer);autoTimer=null;}
+    $(P+'-autobtn').style.display='';
+    $(P+'-stopbtn').style.display='none';
+    $(P+'-rollbtn').disabled=false;
+  }
+  $(P+'-autobtn').onclick=()=>{
+    $(P+'-autobtn').style.display='none';
+    $(P+'-stopbtn').style.display='';
+    $(P+'-rollbtn').disabled=true;
+    autoTimer=setInterval(()=>{
+      const dice=$(P+'-dice');dice.style.display='flex';
+      const d1=$(P+'-die1'),d2=$(P+'-die2'),sumEl=$(P+'-dicesum');
+      const [a,b]=rollPair(),sum=a+b;
+      d1.classList.remove('rolling');d2.classList.remove('rolling');void d1.offsetWidth;
+      d1.classList.add('rolling');d2.classList.add('rolling');
+      drawDie(d1,a);drawDie(d2,b);
+      sumEl.innerHTML=`= ${sum} <span class="lbl">sum</span>`;
+      const won=applyRoll(sum,true);
+      if(won) stopAuto();
+    },560);
+  };
+  $(P+'-stopbtn').onclick=stopAuto;
+
+  // manual entry
+  $(P+'-roll-input').addEventListener('input',function(){showHint(parseInt(this.value));});
+  $(P+'-roll-input').addEventListener('keydown',e=>{if(e.key==='Enter')$(P+'-apply-btn').click();});
+  $(P+'-apply-btn').onclick=()=>{ const v=parseInt($(P+'-roll-input').value); applyRoll(v,false); };
+
+  $(P+'-undo-btn').onclick=()=>{
+    if(!history.length) return;
+    state=history.pop();
+    $(P+'-roll-input').value='';
+    $(P+'-hint').className='hint';
+    $(P+'-hint').innerHTML='Roll the dice, or type a value, to see the optimal move.';
+    update();
+    const log=$(P+'-log');
+    if(log.firstChild&&!log.querySelector('.empty')) log.removeChild(log.firstChild);
+    if(!log.firstChild) log.innerHTML='<div class="empty">No rolls yet.</div>';
+  };
+
+  // live heatmap toggle
+  const heatToggle=$(P+'-heat-toggle');
+  if(heatToggle){
+    heatToggle.addEventListener('change',function(){
+      heatOn=this.checked;
+      update();
+    });
+  }
+
+  function goSetup(){
+    stopAuto();
+    $(P+'-setup').style.display='block';
+    $(P+'-play').style.display='none';
+    $(P+'-win').style.display='none';
+    $(P+'-error').textContent='';
+    $(P+'-setup-grid').querySelectorAll('.cell').forEach(c=>c.classList.remove('invalid'));
+  }
+  $(P+'-newboard-btn').onclick=goSetup;
+  $(P+'-win-newboard-btn').onclick=goSetup;
+  $(P+'-replay-btn').onclick=startPlay;
+  $(P+'-win-replay-btn').onclick=startPlay;
+
+  setMode('values');
+}
+
+makeSolo({
+  n:9,prefix:'solo',
+  isWinFn:isWin,getWinFn:getWinLine,bcFn:bc,markFn:mark,
+  solveFn:solveSingle
+});
+makeSolo({
+  n:16,prefix:'s4',
+  isWinFn:isWin4,getWinFn:getWinLine4,bcFn:bc16,markFn:mark4,
+  solveFn:solveSingle4
+});
+
+/* ════════════════════════════ HEATMAP ════════════════════════════ */
+makeSetupGrid('heat-setup-grid',9);
+// Seed with a varied board so the first heatmap is meaningful (all-7s is flat).
+(function(){const seed=[6,8,5,9,7,4,10,3,11];for(let i=0;i<9;i++)$('heat-setup-grid-c'+i).value=seed[i];})();
+
+let heatPremark=0,heatMode='values';
+(function(){
+  const valuesBtn=$('heat-mode-values'),marksBtn=$('heat-mode-marks'),help=$('heat-mode-help');
+  function setMode(mode){
+    heatMode=mode;
+    valuesBtn.classList.toggle('on',mode==='values');
+    marksBtn.classList.toggle('on',mode==='marks');
+    $('heat-setup-grid').querySelectorAll('.cell').forEach(c=>{
+      const inp=c.querySelector('input');
+      if(mode==='marks'){c.classList.add('clickable');inp.disabled=true;inp.style.pointerEvents='none';}
+      else{c.classList.remove('clickable');inp.disabled=false;inp.style.pointerEvents='';}
+    });
+    help.textContent= mode==='values'
+      ? 'Enter a value (2–12) in each cell.'
+      : 'Click cells that are already marked, then compute the best next mark from there.';
+  }
+  valuesBtn.onclick=()=>setMode('values');
+  marksBtn.onclick=()=>setMode('marks');
+  $('heat-setup-grid').addEventListener('click',e=>{
+    if(heatMode!=='marks') return;
+    const cell=e.target.closest('.cell');if(!cell) return;
+    const i=+cell.dataset.idx;
+    heatPremark^=(1<<i);
+    cell.classList.toggle('premark',!!(heatPremark&(1<<i)));
+  });
+  setMode('values');
+})();
+
+$('heat-clear-btn').onclick=()=>{clearSetup('heat-setup-grid',9);heatPremark=0;$('heat-error').textContent='';$('heat-results').style.display='none';};
+$('heat-reset-btn').onclick=()=>{$('heat-results').style.display='none';$('heat-setup').style.display='block';};
+
+$('heat-solve-btn').onclick=function(){
+  const {vals,bad}=readBoard('heat-setup-grid',9);
+  if(bad.length){$('heat-error').textContent='Every cell needs a value from 2 to 12.';return;}
+  if(isWin(heatPremark)){$('heat-error').textContent='Those pre-marked cells already complete a line — nothing left to evaluate.';return;}
+  $('heat-error').textContent='';
+  this.disabled=true;this.innerHTML='<span class="spin"></span>Computing…';
+  const self=this;
+  const premark=heatPremark;
   setTimeout(()=>{
-    s4Board=vals;
-    const res=solveSingle4(s4Board); s4V=res.V; s4Strat=res.strat;
-    this.disabled=false; this.textContent='Solve & start playing';
-    showS4Play();
+    const V=solveSingle(vals).V;
+    const base=ffloat(V[premark]);
+    // Value of marking each unmarked cell as the next move from the current position:
+    // how many rolls you save. Pre-marked cells are skipped (already marked).
+    const marg=[];
+    for(let i=0;i<9;i++){
+      if(premark&(1<<i)){marg.push(null);continue;}
+      const after=mark(premark,i);
+      const va=isWin(after)?0:ffloat(V[after]);
+      marg.push(base-va);
+    }
+    const liveMargs=marg.filter(x=>x!==null);
+    const maxM=Math.max(...liveMargs,1e-9);
+    const minM=Math.min(...liveMargs,maxM);
+    const flat = (maxM-minM) < 0.005;
+    // render
+    const g=$('heat-grid');g.innerHTML='';
+    for(let i=0;i<9;i++){
+      const div=document.createElement('div');
+      if(premark&(1<<i)){
+        // already-marked cell: show as a mark, no tint
+        div.className='cell marked';
+        div.innerHTML=`<span class="cidx">${i}</span><span class="val">${vals[i]}</span>`;
+        g.appendChild(div);
+        continue;
+      }
+      const t = Math.max(0,marg[i])/maxM; // 0..1, anchored at zero (matches live map)
+      div.className='cell heat';
+      const r=Math.round(0xee+(0x2d-0xee)*t);
+      const gg=Math.round(0xf4+(0x6e-0xf4)*t);
+      const bb=Math.round(0xf7+(0x8e-0xf7)*t);
+      div.style.background=`rgb(${r},${gg},${bb})`;
+      div.style.borderColor='#c3cdc9';
+      const txtDark = t>0.55;
+      div.innerHTML=`<span class="cidx">${i}</span><span class="val" style="color:${txtDark?'#fff':'#15212B'}">${vals[i]}</span>`+
+        `<span class="heatnum" style="color:${txtDark?'#dce8ee':'#3c4a55'}">−${marg[i].toFixed(2)}</span>`;
+      g.appendChild(div);
+    }
+    // most/least among unmarked cells
+    let maxI=-1,minI=-1;
+    for(let i=0;i<9;i++){
+      if(marg[i]===null) continue;
+      if(maxI<0||marg[i]>marg[maxI]) maxI=i;
+      if(minI<0||marg[i]<marg[minI]) minI=i;
+    }
+    const nMarked=bc(premark);
+    const baseLabel = nMarked? `Expected rolls from here` : `Expected rolls (full board)`;
+    $('heat-stats').innerHTML=`
+      <div class="row"><span class="k">${baseLabel}</span><span class="v big">${base.toFixed(3)}</span></div>`+
+      (nMarked?`<div class="row"><span class="k">Cells pre-marked</span><span class="v">${nMarked} / 9</span></div>`:``)+
+      `<div class="row"><span class="k">Best next mark</span><span class="v">#${maxI} · ${vals[maxI]}</span></div>
+      <div class="row"><span class="k">Weakest next mark</span><span class="v">#${minI} · ${vals[minI]}</span></div>`;
+    const ctx = nMarked? `from the current position (with ${nMarked} cell${nMarked!==1?'s':''} already marked)` : `from the empty board`;
+    $('heat-note').innerHTML= flat
+      ? `Every open cell shows the same value here — each is an equally good next mark, so none stands out. Try a board with more varied values, or a different set of pre-marked cells.`
+      : `Each cell's number is how many rolls you'd <em>save</em> by marking it as your next move ${ctx} — the drop in expected rolls to win. Darker means a more valuable mark. Pre-marked cells are shown filled. With cells already marked, the values shift to favor whatever completes a nearly-finished line.`;
+    $('heat-setup').style.display='none';
+    $('heat-results').style.display='block';
+    self.disabled=false;self.textContent='Compute heatmap';
   },20);
 };
 
-function showS4Play(){
-  document.getElementById('s4-setup').style.display='none';
-  document.getElementById('s4-play').style.display='block';
-  document.getElementById('s4-win').style.display='none';
-  s4State={mask:0,rolls:0}; s4History=[];
-  buildPlayGrid4('s4-play-grid',s4Board);
-  document.getElementById('s4-log').innerHTML='';
-  document.getElementById('s4-roll-input').value='';
-  updateS4UI();
-}
+/* ════════════════════════════ HEAD-TO-HEAD ════════════════════════════ */
+makeSetupGrid('h2h-grid1',9);
+makeSetupGrid('h2h-grid2',9);
+// Seed with two different boards so the first comparison is illustrative (identical boards always tie).
+(function(){
+  const s1=[6,8,5,9,7,4,10,3,11], s2=[7,7,7,7,7,7,7,7,7];
+  for(let i=0;i<9;i++){$('h2h-grid1-c'+i).value=s1[i];$('h2h-grid2-c'+i).value=s2[i];}
+})();
 
-function buildPlayGrid4(gid,board){
-  const g=document.getElementById(gid);
-  g.innerHTML='';
-  for(let i=0;i<16;i++){
-    const div=document.createElement('div');
-    div.className='cell'; div.id=gid+'-cell'+i;
-    div.innerHTML=`<span class="cell-idx">${i}</span><span>${board[i]}</span>`;
-    g.appendChild(div);
-  }
-}
+$('h2h-clear-btn').onclick=()=>{
+  clearSetup('h2h-grid1',9);clearSetup('h2h-grid2',9);
+  $('h2h-error').textContent='';$('h2h-results').style.display='none';
+};
+$('h2h-reset-btn').onclick=()=>{$('h2h-results').style.display='none';$('h2h-setup').style.display='block';};
 
-function updateS4UI(suggestedCell){
-  const mask=s4State.mask;
-  const winCells=isWin4(mask)?getWinLine4(mask):new Set();
-  for(let i=0;i<16;i++){
-    const el=document.getElementById('s4-play-grid-cell'+i);
-    el.className='cell';
-    if(winCells.size&&winCells.has(i)) el.className='cell winning';
-    else if(mask&(1<<i)) el.className='cell marked';
-    else if(suggestedCell===i) el.className='cell suggested';
-  }
-  const rem=ffloat(s4V[mask]||ZERO);
-  document.getElementById('s4-stats').innerHTML=`<table>
-    <tr><td>Cells marked</td><td>${bc16(mask)} / 16</td></tr>
-    <tr><td>Expected rolls remaining</td><td>${rem.toFixed(3)}</td></tr>
-    <tr><td>Rolls used so far</td><td>${s4State.rolls}</td></tr>
-  </table>`;
-}
-
-function s4Hint(v){
-  const hint=document.getElementById('s4-hint');
-  if(v===null||isNaN(v)||v<2||v>12){hint.innerHTML='Enter a roll to see the optimal move.';updateS4UI();return;}
-  const mask=s4State.mask;
-  const key=mask+'_'+v;
-  const unmarked=[...Array(16).keys()].filter(i=>!(mask&(1<<i)));
-  const hits=unmarked.filter(i=>s4Board[i]===v);
-  if(!hits.length){hint.innerHTML=`Roll <b>${v}</b> — no matching cell. This roll is wasted.`;updateS4UI();return;}
-  const cell=s4Strat[key];
-  hint.innerHTML=`Roll <b>${v}</b> — mark cell <b>${cell}</b> (value&nbsp;${s4Board[cell]}).`;
-  updateS4UI(cell);
-}
-
-document.getElementById('s4-roll-input').addEventListener('input',function(){s4Hint(parseInt(this.value));});
-document.getElementById('s4-roll-input').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('s4-apply-btn').click();});
-
-document.getElementById('s4-apply-btn').onclick=function(){
-  const v=parseInt(document.getElementById('s4-roll-input').value);
-  if(isNaN(v)||v<2||v>12) return;
-  const mask=s4State.mask;
-  const key=mask+'_'+v;
-  const unmarked=[...Array(16).keys()].filter(i=>!(mask&(1<<i)));
-  const hits=unmarked.filter(i=>s4Board[i]===v);
-  s4History.push({mask,rolls:s4State.rolls});
-  s4State.rolls++;
-  if(!hits.length){
-    addS4Log(v,null,true);
-    document.getElementById('s4-roll-input').value='';
-    document.getElementById('s4-hint').innerHTML='Enter a roll to see the optimal move.';
-    updateS4UI();
-    return;
-  }
-  const cell=s4Strat[key];
-  const newMask=mark4(mask,cell);
-  s4State.mask=newMask;
-  addS4Log(v,cell,false);
-  document.getElementById('s4-roll-input').value='';
-  if(isWin4(newMask)){
-    updateS4UI();
-    document.getElementById('s4-play').style.display='none';
-    document.getElementById('s4-win').style.display='block';
-    document.getElementById('s4-win-msg').textContent=`Completed in ${s4State.rolls} roll${s4State.rolls!==1?'s':''} using optimal strategy.`;
-    return;
-  }
-  document.getElementById('s4-hint').innerHTML='Enter a roll to see the optimal move.';
-  updateS4UI();
+$('h2h-solve-btn').onclick=function(){
+  const r1=readBoard('h2h-grid1',9),r2=readBoard('h2h-grid2',9);
+  if(r1.bad.length||r2.bad.length){$('h2h-error').textContent='Every cell needs a value from 2 to 12.';return;}
+  $('h2h-error').textContent='';
+  this.disabled=true;this.innerHTML='<span class="spin"></span>Computing…';
+  const self=this;
+  setTimeout(()=>{
+    const b1=r1.vals,b2=r2.vals;
+    const s1=solveSingle(b1),s2=solveSingle(b2);
+    const {W1,W2,D}=solveH2H(b1,s1.V,s1.strat,b2,s2.V,s2.strat);
+    const key=0;
+    const w1=W1[key],w2=W2[key],d=D[key];
+    const e1=ffloat(s1.V[0]),e2=ffloat(s2.V[0]);
+    $('h2h-solo-stats').innerHTML=`
+      <div class="row"><span class="k">Board 1 expected rolls</span><span class="v">${e1.toFixed(4)}</span></div>
+      <div class="row"><span class="k">Board 2 expected rolls</span><span class="v">${e2.toFixed(4)}</span></div>`;
+    $('h2h-cards').innerHTML=`
+      <div class="rcard win1"><div class="rl">Board 1 wins</div><div class="rv">${pct(w1)}</div><div class="rf">${fracStr(w1)}</div></div>
+      <div class="rcard win2"><div class="rl">Board 2 wins</div><div class="rv">${pct(w2)}</div><div class="rf">${fracStr(w2)}</div></div>
+      <div class="rcard"><div class="rl">Tie</div><div class="rv">${pct(d)}</div><div class="rf">${fracStr(d)}</div></div>`;
+    $('h2h-setup').style.display='none';
+    $('h2h-results').style.display='block';
+    self.disabled=false;self.textContent='Compute probabilities';
+  },20);
 };
 
-document.getElementById('s4-undo-btn').onclick=function(){
-  if(!s4History.length) return;
-  s4State=s4History.pop();
-  document.getElementById('s4-roll-input').value='';
-  document.getElementById('s4-hint').innerHTML='Enter a roll to see the optimal move.';
-  updateS4UI();
-  const log=document.getElementById('s4-log');
-  if(log.firstChild) log.removeChild(log.firstChild);
-};
-
-function addS4Log(roll,cell,wasted){
-  const log=document.getElementById('s4-log');
-  const d=document.createElement('div'); d.className='log-entry';
-  d.innerHTML=wasted
-    ?`Roll <b>${roll}</b> — wasted (no matching cell)`
-    :`Roll <b>${roll}</b> → mark cell <b>${cell}</b> (value ${s4Board[cell]})`;
-  log.insertBefore(d,log.firstChild);
-}
-
-function s4GoSetup(){
-  document.getElementById('s4-setup').style.display='block';
-  document.getElementById('s4-play').style.display='none';
-  document.getElementById('s4-win').style.display='none';
-  document.getElementById('s4-error').textContent='';
-  document.querySelectorAll('#s4-setup-grid .cell').forEach(c=>c.classList.remove('invalid'));
-}
-
-document.getElementById('s4-newboard-btn').onclick=s4GoSetup;
-document.getElementById('s4-win-newboard-btn').onclick=s4GoSetup;
-document.getElementById('s4-replay-btn').onclick=showS4Play;
-document.getElementById('s4-win-replay-btn').onclick=showS4Play;
-
-// ── Tab switching ──────────────────────────────────────────────────────────
+/* ════════════════════════════ Tabs ════════════════════════════ */
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    $('tab-'+btn.dataset.tab).classList.add('active');
   });
 });
 
